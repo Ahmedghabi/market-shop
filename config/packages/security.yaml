@@ -1,0 +1,92 @@
+security:
+    role_hierarchy:
+        ROLE_SUPER_ADMIN: [ROLE_BOUTIQUE_ADMIN, ROLE_CAISSIER, ROLE_CUSTOMER, ROLE_USER]
+        ROLE_BOUTIQUE_ADMIN: [ROLE_CAISSIER, ROLE_CUSTOMER, ROLE_USER]
+        ROLE_CAISSIER: [ROLE_USER]
+        ROLE_CUSTOMER: [ROLE_USER]
+
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: auto
+
+    providers:
+        app_user_provider:
+            id: App\Security\UserProvider
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\BearerTokenAuthenticator
+            entry_point: App\Security\AuthenticationEntryPoint
+        main:
+            lazy: true
+            provider: app_user_provider
+
+    access_control:
+        - { path: ^/api/health, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/dev-login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/me, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register-shop, roles: PUBLIC_ACCESS }
+        - { path: ^/api/account, roles: ROLE_CUSTOMER }
+        - { path: ^/api/boutiques$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/auth, roles: PUBLIC_ACCESS }
+        - { path: ^/api/products, roles: PUBLIC_ACCESS }
+        - { path: ^/api/categories, roles: PUBLIC_ACCESS }
+        - { path: ^/api/brands, roles: PUBLIC_ACCESS }
+        - { path: ^/api/cart, roles: PUBLIC_ACCESS }
+        - { path: ^/api/reviews, roles: PUBLIC_ACCESS }
+        - { path: ^/api/promotions, roles: PUBLIC_ACCESS }
+        - { path: ^/api/coupons, roles: PUBLIC_ACCESS }
+        - { path: ^/api/delivery-rules, roles: PUBLIC_ACCESS }
+        - { path: ^/api/payment-methods, roles: PUBLIC_ACCESS }
+        - { path: ^/api/cms, roles: PUBLIC_ACCESS }
+        - { path: ^/api/announcements, roles: PUBLIC_ACCESS }
+        - { path: ^/api/filters, roles: PUBLIC_ACCESS }
+        - { path: ^/api/media, roles: PUBLIC_ACCESS }
+        - { path: ^/api/conversations, roles: PUBLIC_ACCESS }
+        - { path: ^/api/sponsors, roles: PUBLIC_ACCESS }
+        - { path: ^/api/subscriptions, roles: PUBLIC_ACCESS }
+        - { path: ^/api/subscription-requests, roles: PUBLIC_ACCESS }
+        - { path: ^/api/themes, roles: PUBLIC_ACCESS }
+        - { path: ^/api/settings, roles: PUBLIC_ACCESS }
+        - { path: ^/api/menus, roles: PUBLIC_ACCESS }
+        - { path: ^/api/favorites, roles: PUBLIC_ACCESS }
+        - { path: ^/api/seo, roles: PUBLIC_ACCESS }
+        - { path: ^/api/chat/upload, roles: PUBLIC_ACCESS }
+        - { path: ^/api/frontend-bootstrap, roles: PUBLIC_ACCESS }
+        - { path: ^/api/frontend-routes, roles: PUBLIC_ACCESS }
+        - { path: ^/api/routes, roles: PUBLIC_ACCESS }
+        - { path: ^/api/public, roles: PUBLIC_ACCESS }
+        - { path: ^/api/admin/subscription-plans, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-requests, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/platform-modules, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/permissions, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-modules, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-plans/[^/]+/modules, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/themes, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/announcements, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/payment-methods, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/invoices, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscriptions/[^/]+/invoice, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/notification-providers, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/notification-templates, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/dashboard/platform, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/app-config, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/webhooks, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/audit-logs, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/refunds, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/admin/coupons, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/boutique/subscription-plans, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/me/sessions, roles: ROLE_USER }
+        - { path: ^/api/me/orders, roles: ROLE_CUSTOMER }
+        - { path: ^/api/me, roles: ROLE_USER }
+        - { path: ^/api/admin, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api, roles: ROLE_USER }

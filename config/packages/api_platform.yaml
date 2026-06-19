@@ -1,0 +1,14 @@
+api_platform:
+    title: Hanooty API
+    version: 0.1.0
+    mapping:
+        paths:
+            - '%kernel.project_dir%/src/ApiResource'
+            - '%kernel.project_dir%/src/Entity'
+    defaults:
+        stateless: true
+        pagination_items_per_page: 30
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+        xml: ['application/xml', 'text/xml']

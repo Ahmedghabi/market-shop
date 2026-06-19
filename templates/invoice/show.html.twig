@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><style>
+body{font-family:DejaVu Sans,sans-serif;font-size:11px;color:#333;margin:20px}
+.header{display:flex;justify-content:space-between;margin-bottom:30px;border-bottom:2px solid #3525cd;padding-bottom:20px}
+.title{font-size:24px;font-weight:bold;color:#3525cd}
+.invoice-info{font-size:12px}
+table{width:100%;border-collapse:collapse;margin:20px 0}
+th{background:#f5f5f5;padding:8px;text-align:left;border-bottom:2px solid #ddd}
+td{padding:8px;border-bottom:1px solid #eee}
+.right{text-align:right}
+.total-row td{font-weight:bold;border-top:2px solid #333}
+.section{margin:20px 0}
+.section h3{margin:0 0 8px;color:#3525cd}
+.footer{margin-top:40px;font-size:10px;color:#666;text-align:center;border-top:1px solid #ddd;padding-top:10px}
+.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:10px;font-weight:bold;color:#fff}
+.badge-paid{background:#22c55e}
+.badge-pending{background:#f59e0b}
+</style></head>
+<body>
+<div class="header">
+<div><div class="title">FACTURE</div><div class="invoice-info"><strong>{{ invoice.invoiceNumber }}</strong><br>Emise: {{ issuedAt }}<br>Echeance: {{ dueDate }}</div></div>
+<div style="text-align:right"><div class="invoice-info">
+<strong>{{ invoice.boutiqueName }}</strong><br>
+{{ invoice.boutiqueEmail }}<br>
+{{ invoice.boutiquePhone }}<br>
+{{ invoice.boutiqueAddress }}
+</div></div>
+</div>
+<div class="section"><h3>Client</h3>
+<p><strong>{{ invoice.customerName }}</strong><br>{{ invoice.customerEmail }}<br>{{ invoice.customerPhone }}</p>
+</div>
+<table><thead><tr><th>Description</th><th class="right">Qte</th><th class="right">Prix Unitaire</th><th class="right">Total</th></tr></thead>
+<tbody>
+{% for item in items %}
+<tr><td>{{ item.description }}</td><td class="right">{{ item.quantity }}</td><td class="right">{{ item.unitPrice }}</td><td class="right">{{ item.total }} {{ invoice.currency }}</td></tr>
+{% endfor %}
+</tbody>
+<tfoot>
+<tr><td colspan="3" class="right">Sous-total</td><td class="right">{{ subtotal }} {{ invoice.currency }}</td></tr>
+<tr><td colspan="3" class="right">Remise</td><td class="right">{{ discount }} {{ invoice.currency }}</td></tr>
+<tr><td colspan="3" class="right">TVA</td><td class="right">{{ tax }} {{ invoice.currency }}</td></tr>
+<tr><td colspan="3" class="right">Livraison</td><td class="right">{{ shipping }} {{ invoice.currency }}</td></tr>
+<tr class="total-row"><td colspan="3" class="right">TOTAL</td><td class="right">{{ total }} {{ invoice.currency }}</td></tr>
+</tfoot></table>
+<div class="section"><h3>Statut</h3>
+<p>Paiement: <span class="badge badge-{{ statusBadge }}">{{ statusValue }}</span>{{ paidInfo }}</p></div>
+<div class="footer">Merci pour votre confiance. | {{ invoice.boutiqueName }}</div>
+</body></html>

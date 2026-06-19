@@ -1,0 +1,26 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    handle_all_throwables: true
+    php_errors:
+        log: true
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+    rate_limiter:
+        limiters:
+            public_cart:
+                policy: fixed_window
+                limit: 60
+                interval: '1 minute'
+            public_checkout:
+                policy: fixed_window
+                limit: 5
+                interval: '10 minutes'
+            public_reference:
+                policy: fixed_window
+                limit: 120
+                interval: '1 minute'
+    messenger:
+        failure_transport: failed

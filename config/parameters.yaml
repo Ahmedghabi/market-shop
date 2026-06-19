@@ -1,0 +1,61 @@
+parameters:
+    app.name: market-shop
+    app.chat.upload_dir: '%kernel.project_dir%/public/uploads'
+    app.reserved_slugs: []
+
+    chatbot.global_enabled: true
+
+    modules:
+        products: true
+        categories: true
+        customers: true
+        orders: true
+        payments: true
+        delivery: true
+        inventory: true
+        cart: true
+        announcements: true
+        employees: true
+        wallet: false
+        cms: true
+        themes: true
+        audit: true
+        monitoring: true
+        reviews: true
+        wishlist: true
+        loyalty: true
+        coupons: true
+        promotions: true
+        blog: true
+        brands: true
+        multi_address: true
+        chatbot: true
+        seo_advanced: true
+        custom_domain: true
+        analytics: true
+        delivery_tracking: true
+        wholesale: true
+        gift_cards: true
+        newsletter: true
+        abandoned_cart: true
+        order_printing: true
+        social_login: true
+        pos: true
+
+    cache_ttl:
+        shop_context: 21600
+        module_access: 600
+        settings: 600
+        menu: 600
+        cms: 600
+        notifications: 600
+        media: 600
+        dashboard: 600
+        marketing: 600
+        coupons: 600
+        delivery_rules: 600
+        refunds: 600
+        invoices: 600
+        favorites: 600
+        session: 600
+        chatbot_config: 600

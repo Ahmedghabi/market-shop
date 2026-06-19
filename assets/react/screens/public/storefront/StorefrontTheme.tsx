@@ -1,0 +1,683 @@
+import { type ReactNode, useMemo, useState } from 'react';
+import {
+  ArrowRight,
+  Mail,
+  Menu,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Truck,
+  User,
+  X,
+} from 'lucide-react';
+import { CartSheet } from './CartSheet';
+import { boutiqueLink } from '../boutiqueRouting';
+import { type StoreProduct } from './ProductCard';
+
+export type { StoreProduct } from './ProductCard';
+
+export type StoreBoutique = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  description?: string | null;
+  email?: string | null;
+  address?: string | null;
+  primaryColor?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+};
+
+type CartItem = { product: StoreProduct; qty: number };
+type StoreCategory = { name: string; count: number; image: string };
+
+export function StorefrontTheme({
+  boutique,
+  products: initial,
+}: {
+  boutique: StoreBoutique;
+  products: StoreProduct[];
+}) {
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  (window as any).__boutiqueSlug__ = boutique.slug;
+
+  const categories = useMemo<StoreCategory[]>(() => {
+    const map = new Map<string, StoreCategory>();
+
+    initial.forEach((product) => {
+      const name = product.categoryName || 'Collection';
+      const existing = map.get(name);
+      const image = getProductImage(product) || '';
+
+      if (existing) {
+        existing.count += 1;
+        if (!existing.image && image) {
+          existing.image = image;
+        }
+        return;
+      }
+
+      map.set(name, { name, count: 1, image });
+    });
+
+    return Array.from(map.values()).slice(0, 5);
+  }, [initial]);
+
+  const filteredProducts = useMemo(
+    () =>
+      searchQuery
+        ? initial.filter(
+            (product) =>
+              product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : initial,
+    [initial, searchQuery]
+  );
+
+  const featuredProduct = filteredProducts[0] ?? initial[0] ?? null;
+  const spotlightProduct =
+    filteredProducts.find((product) => (product.comparePriceCents ?? 0) > product.priceCents) ??
+    filteredProducts[1] ??
+    featuredProduct;
+  const newArrivals = filteredProducts.slice(0, 4);
+  const bestSellers = [...filteredProducts]
+    .sort((left, right) => (right.rating ?? 0) - (left.rating ?? 0))
+    .slice(0, 2);
+  const heroCategories = categories.slice(0, 2);
+  const collectionCategories = categories.length > 0 ? categories : buildFallbackCategories(initial);
+
+  const handleAddToCart = (product: StoreProduct) => {
+    setCart((current) => {
+      const existing = current.find((item) => item.product.id === product.id);
+      if (existing) {
+        return current.map((item) =>
+          item.product.id === product.id ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+
+      return [...current, { product, qty: 1 }];
+    });
+  };
+
+  const handleSetQty = (id: string, qty: number) => {
+    if (qty <= 0) {
+      setCart((current) => current.filter((item) => item.product.id !== id));
+      return;
+    }
+
+    setCart((current) =>
+      current.map((item) => (item.product.id === id ? { ...item, qty } : item))
+    );
+  };
+
+  const handleRemove = (id: string) => {
+    setCart((current) => current.filter((item) => item.product.id !== id));
+  };
+
+  const navItems = [
+    { label: 'Accueil', href: boutiqueLink('/') },
+    { label: 'Catalogue', href: boutiqueLink('#catalogue') },
+    { label: 'A propos', href: boutiqueLink('#story') },
+    { label: 'Contact', href: boutiqueLink('#contact') },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#f6f2eb] text-[#171717]">
+      <TopRibbon boutique={boutique} />
+
+      <header className="sticky top-0 z-30 border-b border-black/10 bg-[#f6f2eb]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <button
+            className="rounded-full p-2 text-[#171717] md:hidden"
+            onClick={() => setMobileMenu(true)}
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          <a href={boutiqueLink('/')} className="flex items-center gap-3">
+            {boutique.logoUrl ? (
+              <img src={boutique.logoUrl} alt={boutique.name} className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-[#111111] text-sm font-semibold text-white">
+                {boutique.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="text-xs uppercase tracking-[0.28em] text-black/50">N Collection</div>
+              <div className="text-lg font-semibold tracking-tight">{boutique.name}</div>
+            </div>
+          </a>
+
+          <nav className="hidden items-center gap-8 md:flex">
+            {navItems.map((item) => (
+              <a key={item.label} href={item.href} className="text-sm font-medium text-black/70 transition hover:text-black">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="rounded-full border border-black/10 p-2 text-black transition hover:bg-white"
+              aria-label="Rechercher"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+            <a
+              href={boutiqueLink('/')}
+              className="rounded-full border border-black/10 p-2 text-black transition hover:bg-white"
+              aria-label="Compte"
+            >
+              <User className="h-4 w-4" />
+            </a>
+            <CartSheet items={cart} onSetQty={handleSetQty} onRemove={handleRemove} />
+          </div>
+        </div>
+      </header>
+
+      {mobileMenu && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={() => setMobileMenu(false)} />
+          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-[#f6f2eb] px-6 py-8 shadow-2xl">
+            <div className="mb-10 flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-[0.28em] text-black/50">Navigation</div>
+                <div className="text-xl font-semibold">{boutique.name}</div>
+              </div>
+              <button className="rounded-full border border-black/10 p-2" onClick={() => setMobileMenu(false)}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <nav className="space-y-4">
+              {navItems.map((item) => (
+                <a key={item.label} href={item.href} className="block text-lg font-medium text-black/80">
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          </div>
+        </>
+      )}
+
+      {searchOpen && (
+        <SearchOverlay query={searchQuery} onQuery={setSearchQuery} onClose={() => setSearchOpen(false)} />
+      )}
+
+      <main>
+        <section className="px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-16 lg:pt-8">
+          <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1.35fr)_430px]">
+            <div className="overflow-hidden rounded-[2rem] bg-[#111111] px-8 py-10 text-white sm:px-10 sm:py-12 lg:min-h-[620px] lg:px-14 lg:py-16">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/70">
+                <Sparkles className="h-3.5 w-3.5" /> Midnight Collection 2026
+              </div>
+
+              <h1 className="mt-8 max-w-3xl text-4xl font-semibold uppercase leading-[0.92] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
+                {formatHeroTitle(boutique.name)}
+              </h1>
+
+              <p className="mt-6 max-w-xl text-sm leading-7 text-white/72 sm:text-base">
+                {boutique.heroSubtitle || boutique.description || 'Precision minimaliste, matieres fortes et silhouettes pensees pour une boutique contemporaine.'}
+              </p>
+
+              <div className="mt-9 flex flex-wrap gap-3">
+                <a href={boutiqueLink('#catalogue')} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#111111] transition hover:bg-white/90">
+                  Explorer la boutique
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <a href={boutiqueLink('#drops')} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/8">
+                  Voir les drops
+                </a>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-rows-[1fr_1fr_auto_auto]">
+              {heroCategories.map((category) => (
+                <CategoryAccentCard key={category.name} category={category} />
+              ))}
+
+              {featuredProduct && <FeaturedProductPanel product={featuredProduct} onAddToCart={handleAddToCart} />}
+
+              <div className="rounded-[1.6rem] border border-black/10 bg-white px-6 py-5">
+                <div className="text-3xl font-semibold tracking-[-0.05em]">24h</div>
+                <div className="mt-1 text-sm text-black/60">Express delivery</div>
+              </div>
+
+              <div className="rounded-[1.6rem] border border-black/10 bg-white px-6 py-6">
+                <div className="text-lg font-semibold">Join the Collective</div>
+                <p className="mt-2 text-sm leading-6 text-black/60">-15% sur votre premiere commande + acces aux drops limites.</p>
+                <form className="mt-4 flex gap-2" onSubmit={(event) => event.preventDefault()}>
+                  <input
+                    type="email"
+                    placeholder="Votre email"
+                    className="min-w-0 flex-1 rounded-full border border-black/10 bg-[#f8f5ef] px-4 py-3 text-sm outline-none"
+                  />
+                  <button type="submit" className="rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white">
+                    Rejoindre
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <FeatureTicker />
+
+        <section id="story" className="px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[260px_minmax(0,1fr)]">
+            <div>
+              <div className="text-xs uppercase tracking-[0.25em] text-black/45">Explorer</div>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Nos univers</h2>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+              {collectionCategories.map((category) => (
+                <a
+                  key={category.name}
+                  href={boutiqueLink('#catalogue')}
+                  className="group overflow-hidden rounded-[1.8rem] border border-black/10 bg-white"
+                >
+                  <div className="aspect-[0.9] overflow-hidden bg-[#e7e0d6]">
+                    {category.image ? (
+                      <img src={category.image} alt={category.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-black/45">{category.name}</div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between px-5 py-4">
+                    <div>
+                      <div className="text-sm font-semibold">{category.name}</div>
+                      <div className="mt-1 text-xs text-black/50">{category.count} items</div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-black/40 transition group-hover:translate-x-1 group-hover:text-black" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="catalogue" className="px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <SectionHeading eyebrow="Just dropped" title="Nouveautes" href={boutiqueLink('#catalogue')} />
+            <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {newArrivals.map((product) => (
+                <ProductEditorialCard key={product.id} product={product} onAddToCart={handleAddToCart} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="drops" className="px-4 pb-14 sm:px-6 lg:px-8" />
+
+        {spotlightProduct && (
+          <section className="px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="rounded-[2rem] bg-[#111111] px-8 py-8 text-white sm:px-10 sm:py-10">
+                <div className="text-xs uppercase tracking-[0.24em] text-white/55">Offre limitee</div>
+                <h3 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">-30% sur la selection</h3>
+                <p className="mt-3 max-w-xl text-sm leading-7 text-white/70">
+                  Pieces fortes, paniers soignes et une direction visuelle proche du template Nordic que vous avez envoye.
+                </p>
+                <a href={boutiqueLink('#catalogue')} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#111111]">
+                  J&apos;en profite
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
+
+              <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white">
+                <div className="aspect-[1.05] overflow-hidden bg-[#e8e0d6]">
+                  {getProductImage(spotlightProduct) ? (
+                    <img src={getProductImage(spotlightProduct)} alt={spotlightProduct.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-black/45">Produit</div>
+                  )}
+                </div>
+                <div className="px-6 py-5">
+                  <div className="text-xs uppercase tracking-[0.22em] text-black/45">Coup de coeur</div>
+                  <div className="mt-2 text-xl font-semibold">{spotlightProduct.name}</div>
+                  <div className="mt-3 text-sm text-black/55">{formatPrice(spotlightProduct)}</div>
+                  <button onClick={() => handleAddToCart(spotlightProduct)} className="mt-4 rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white">
+                    Ajouter au panier
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <SectionHeading eyebrow="Community picks" title="Best-sellers" href={boutiqueLink('#catalogue')} />
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              {bestSellers.map((product) => (
+                <ProductEditorialCard key={product.id} product={product} onAddToCart={handleAddToCart} compact />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="px-4 py-10 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <ServiceCard icon={<Truck className="h-5 w-5" />} title="Livraison offerte" description="Des 60 DT d'achat" />
+            <ServiceCard icon={<ArrowRight className="h-5 w-5" />} title="Retours 30 jours" description="Satisfait ou rembourse" />
+            <ServiceCard icon={<ShieldCheck className="h-5 w-5" />} title="Paiement securise" description="Carte, wallet et paiement livre" />
+            <ServiceCard icon={<Mail className="h-5 w-5" />} title="Support 7j/7" description={boutique.email || 'Une equipe dediee'} />
+          </div>
+        </section>
+      </main>
+
+      <footer className="mt-10 bg-[#111111] text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.3fr_repeat(3,minmax(0,1fr))] lg:px-8">
+          <div>
+            <div className="flex items-center gap-3">
+              {boutique.logoUrl ? (
+                <img src={boutique.logoUrl} alt={boutique.name} className="h-11 w-11 rounded-full object-cover" />
+              ) : (
+                <div className="grid h-11 w-11 place-items-center rounded-full bg-white text-sm font-semibold text-[#111111]">
+                  {boutique.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div className="text-lg font-semibold">{boutique.name}</div>
+                <div className="text-sm text-white/45">Boutique editoriale</div>
+              </div>
+            </div>
+            <p className="mt-5 max-w-sm text-sm leading-7 text-white/62">
+              {boutique.description || 'Design fort, produits choisis et experience inspiree du template Nordic Store.'}
+            </p>
+          </div>
+
+          <FooterLinks title="Boutique" links={[
+            { label: 'Catalogue', href: boutiqueLink('#catalogue') },
+            { label: 'Nouveautes', href: boutiqueLink('#drops') },
+            { label: 'Promotions', href: boutiqueLink('#catalogue') },
+          ]} />
+
+          <FooterLinks title="Aide" links={[
+            { label: 'Contact', href: boutiqueLink('#contact') },
+            { label: 'CGV', href: boutiqueLink('') },
+            { label: 'Livraison & retours', href: boutiqueLink('#contact') },
+          ]} />
+
+          <div>
+            <div className="text-sm font-semibold">Newsletter</div>
+            <p className="mt-3 text-sm text-white/55">-10% sur votre premiere commande.</p>
+            <form className="mt-4 flex gap-2" onSubmit={(event) => event.preventDefault()}>
+              <input
+                type="email"
+                placeholder="Votre email"
+                className="min-w-0 flex-1 rounded-full border border-white/12 bg-white/7 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35"
+              />
+              <button type="submit" className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#111111]">
+                OK
+              </button>
+            </form>
+          </div>
+        </div>
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-5 text-xs text-white/45 sm:px-6 lg:px-8">
+            <span>© 2026 {boutique.name}. Tous droits reserves.</span>
+            <span>{boutique.address || 'Tunisie'}</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function TopRibbon({ boutique }: { boutique: StoreBoutique }) {
+  return (
+    <div className="border-b border-black/8 bg-[#ece5d9] text-[#171717]">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 text-xs sm:px-6 lg:px-8">
+        <div className="font-medium">Livraison offerte des 60 DT · Retours 30 jours</div>
+        <div className="flex items-center gap-4 text-black/65">
+          {boutique.email && (
+            <a href={`mailto:${boutique.email}`} className="inline-flex items-center gap-2 hover:text-black">
+              <Mail className="h-3.5 w-3.5" />
+              {boutique.email}
+            </a>
+          )}
+          <span className="hidden sm:inline">Support 7j/7</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryAccentCard({ category }: { category: StoreCategory }) {
+  return (
+    <div className="overflow-hidden rounded-[1.6rem] border border-black/10 bg-white">
+      <div className="grid grid-cols-[120px_minmax(0,1fr)] items-stretch">
+        <div className="aspect-square overflow-hidden bg-[#ddd4c6]">
+          {category.image ? (
+            <img src={category.image} alt={category.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-black/45">{category.name}</div>
+          )}
+        </div>
+        <div className="flex flex-col justify-center px-5 py-4">
+          <div className="text-lg font-semibold">{category.name}</div>
+          <div className="mt-1 text-sm text-black/55">{category.count} items</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedProductPanel({ product, onAddToCart }: { product: StoreProduct; onAddToCart: (product: StoreProduct) => void }) {
+  return (
+    <div className="overflow-hidden rounded-[1.6rem] border border-black/10 bg-white">
+      <div className="aspect-[1.15] overflow-hidden bg-[#e6ddcf]">
+        {getProductImage(product) ? (
+          <img src={getProductImage(product)} alt={product.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-black/45">Produit</div>
+        )}
+      </div>
+      <div className="px-6 py-5">
+        <div className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+          Featured
+        </div>
+        <div className="mt-3 text-xl font-semibold tracking-tight">{product.name}</div>
+        <p className="mt-2 text-sm leading-6 text-black/58">{product.description || 'Piece phare de la collection, selectionnee pour incarner le template de reference.'}</p>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="text-lg font-semibold">{formatPrice(product)}</div>
+          <button onClick={() => onAddToCart(product)} className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold transition hover:bg-[#111111] hover:text-white">
+            Ajouter au panier
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeatureTicker() {
+  const items = ['◆ Design nordique', '◆ Livraison 24h', '◆ Paiement securise', '◆ Retours gratuits 30j', '◆ Support 7j/7', '◆ Edition limitee'];
+
+  return (
+    <section className="overflow-hidden border-y border-black/10 bg-white py-4">
+      <div className="mx-auto grid max-w-7xl gap-3 px-4 text-sm text-black/55 sm:px-6 lg:grid-cols-3 lg:px-8">
+        {[0, 1, 2].map((row) => (
+          <div key={row} className="flex flex-wrap gap-x-4 gap-y-2">
+            {items.map((item) => (
+              <span key={`${row}-${item}`}>{item}</span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SectionHeading({ eyebrow, title, href }: { eyebrow: string; title: string; href: string }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <div className="text-xs uppercase tracking-[0.24em] text-black/45">{eyebrow}</div>
+        <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{title}</h2>
+      </div>
+      <a href={href} className="inline-flex items-center gap-2 text-sm font-semibold text-black/70 transition hover:text-black">
+        Tout voir
+        <ArrowRight className="h-4 w-4" />
+      </a>
+    </div>
+  );
+}
+
+function ProductEditorialCard({
+  product,
+  onAddToCart,
+  compact = false,
+}: {
+  product: StoreProduct;
+  onAddToCart: (product: StoreProduct) => void;
+  compact?: boolean;
+}) {
+  const badge = resolveBadge(product);
+  const image = getProductImage(product);
+
+  return (
+    <div className="group overflow-hidden rounded-[1.7rem] border border-black/10 bg-white">
+      <a href={boutiqueLink(`/products/${product.slug}`)} className={`relative block overflow-hidden bg-[#e7e0d6] ${compact ? 'aspect-[1.2]' : 'aspect-[0.95]'}`}>
+        {image ? (
+          <img src={image} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-black/45">Produit</div>
+        )}
+        <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#111111] shadow-sm">
+          {badge}
+        </div>
+        <button
+          onClick={(event) => {
+            event.preventDefault();
+            onAddToCart(product);
+          }}
+          className="absolute bottom-4 right-4 rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100"
+        >
+          Ajouter
+        </button>
+      </a>
+      <div className="px-5 py-5">
+        <div className="text-xs uppercase tracking-[0.2em] text-black/45">{product.categoryName || 'Collection'}</div>
+        <a href={boutiqueLink(`/products/${product.slug}`)} className="mt-2 block text-lg font-semibold tracking-tight text-[#171717]">
+          {product.name}
+        </a>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-black/55">
+          <span className="font-semibold text-[#171717]">{formatPrice(product)}</span>
+          {product.comparePriceCents && product.comparePriceCents > product.priceCents && (
+            <span className="line-through">{(product.comparePriceCents / 100).toFixed(2)} {product.currency}</span>
+          )}
+          {product.rating ? <span>★ {product.rating.toFixed(1)}</span> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ServiceCard({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-black/10 bg-white px-6 py-5">
+      <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f1ebe1] text-[#111111]">{icon}</div>
+      <div className="mt-4 text-base font-semibold">{title}</div>
+      <div className="mt-1 text-sm text-black/55">{description}</div>
+    </div>
+  );
+}
+
+function FooterLinks({ title, links }: { title: string; links: Array<{ label: string; href: string }> }) {
+  return (
+    <div>
+      <div className="text-sm font-semibold">{title}</div>
+      <ul className="mt-4 space-y-3 text-sm text-white/55">
+        {links.map((link) => (
+          <li key={link.label}>
+            <a href={link.href} className="transition hover:text-white">
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SearchOverlay({
+  query,
+  onQuery,
+  onClose,
+}: {
+  query: string;
+  onQuery: (value: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-[#111111]/40 backdrop-blur-md">
+      <div className="mx-auto mt-12 max-w-3xl rounded-[2rem] bg-[#f6f2eb] p-6 shadow-2xl sm:mt-20">
+        <div className="flex items-center gap-4 rounded-full border border-black/10 bg-white px-5 py-4">
+          <Search className="h-5 w-5 text-black/45" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            placeholder="Rechercher un produit..."
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-black/35"
+          />
+          <button onClick={onClose} className="rounded-full border border-black/10 p-2 text-black/60">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getProductImage(product: StoreProduct): string {
+  const firstImage = product.images?.[0];
+  if (!firstImage) {
+    return '';
+  }
+
+  return typeof firstImage === 'string' ? firstImage : firstImage.url || '';
+}
+
+function resolveBadge(product: StoreProduct): string {
+  if (product.badge) {
+    return product.badge;
+  }
+
+  if ((product.comparePriceCents ?? 0) > product.priceCents) {
+    return 'Promo';
+  }
+
+  if ((product.rating ?? 0) >= 4.7) {
+    return 'Best-seller';
+  }
+
+  return 'Nouveau';
+}
+
+function formatPrice(product: StoreProduct): string {
+  return `${(product.priceCents / 100).toFixed(2)} ${product.currency}`;
+}
+
+function formatHeroTitle(name: string): string {
+  const brand = name.toUpperCase();
+  return `${brand} FUTURE COLLECTION`;
+}
+
+function buildFallbackCategories(products: StoreProduct[]): StoreCategory[] {
+  const source = products.slice(0, 5);
+
+  return source.map((product, index) => ({
+    name: product.categoryName || `Collection ${index + 1}`,
+    count: 1,
+    image: getProductImage(product),
+  }));
+}

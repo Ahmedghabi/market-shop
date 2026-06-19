@@ -1,0 +1,261 @@
+:root {
+  --ds-surface: #fcf8ff;
+  --ds-surface-container-lowest: #ffffff;
+  --ds-surface-container-low: #f5f2ff;
+  --ds-surface-container: #f0ecf9;
+  --ds-surface-container-high: #eae6f4;
+  --ds-surface-container-highest: #e4e1ee;
+  --ds-on-surface: #1b1b24;
+  --ds-on-surface-variant: #464555;
+  --ds-outline: #777587;
+  --ds-outline-variant: #c7c4d8;
+  --ds-primary: #3525cd;
+  --ds-primary-container: #4f46e5;
+  --ds-on-primary: #ffffff;
+  --ds-secondary: #505f76;
+  --ds-secondary-container: #d0e1fb;
+  --ds-on-secondary-container: #54647a;
+  --ds-error: #ba1a1a;
+  --ds-success: #047857;
+  --ds-warning: #b45309;
+  --ds-sidebar-width: 260px;
+}
+
+.ds-shell {
+  min-height: 100vh;
+  background: var(--ds-surface);
+  color: var(--ds-on-surface);
+  font-family: Inter, system-ui, sans-serif;
+  font-feature-settings: "tnum";
+}
+
+.ds-page {
+  margin: 0 auto;
+  max-width: 1440px;
+  padding: 24px;
+}
+
+.ds-card,
+.ds-panel,
+.ds-metric-card {
+  background: var(--ds-surface-container-lowest);
+  border: 1px solid var(--ds-outline-variant);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgb(48 47 57 / 6%);
+}
+
+.ds-card { padding: 24px; }
+
+.ds-panel { padding: 20px; }
+
+.ds-btn {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.5rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.8rem 1.1rem;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.ds-btn:active { transform: translateY(1px); }
+
+.ds-btn--primary {
+  background: var(--ds-primary);
+  color: var(--ds-on-primary);
+}
+
+.ds-btn--secondary {
+  background: var(--ds-surface-container-low);
+  border-color: var(--ds-outline-variant);
+  color: var(--ds-on-surface);
+}
+
+.ds-btn--ghost {
+  background: transparent;
+  border-color: var(--ds-outline-variant);
+  color: var(--ds-on-surface-variant);
+}
+
+.ds-input,
+.ds-select,
+.ds-textarea {
+  appearance: none;
+  background: var(--ds-surface-container-lowest);
+  border: 1px solid var(--ds-outline-variant);
+  border-radius: 12px;
+  color: var(--ds-on-surface);
+  font: inherit;
+  min-height: 44px;
+  padding: 0.8rem 0.95rem;
+  width: 100%;
+}
+
+.ds-input:focus,
+.ds-select:focus,
+.ds-textarea:focus {
+  border-color: var(--ds-primary-container);
+  box-shadow: 0 0 0 3px rgb(79 70 229 / 14%);
+  outline: none;
+}
+
+.ds-textarea { min-height: 120px; resize: vertical; }
+
+.ds-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.ds-badge--success { background: rgb(4 120 87 / 12%); color: var(--ds-success); }
+.ds-badge--warning { background: rgb(180 83 9 / 12%); color: var(--ds-warning); }
+.ds-badge--error { background: rgb(186 26 26 / 12%); color: var(--ds-error); }
+.ds-badge--neutral { background: var(--ds-surface-container); color: var(--ds-on-surface-variant); }
+
+.ds-sidebar {
+  background: var(--ds-surface-container-lowest);
+  border-right: 1px solid var(--ds-outline-variant);
+  width: var(--ds-sidebar-width);
+}
+
+.ds-sidebar-link {
+  align-items: center;
+  border-left: 4px solid transparent;
+  border-radius: 12px;
+  color: var(--ds-on-surface-variant);
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.ds-sidebar-link--active {
+  background: var(--ds-secondary-container);
+  border-left-color: var(--ds-primary-container);
+  color: var(--ds-on-surface);
+}
+
+.ds-topbar {
+  background: var(--ds-surface-container-low);
+  border-bottom: 1px solid var(--ds-outline-variant);
+  padding: 1rem 1.5rem;
+}
+
+.ds-section { margin-top: 24px; }
+
+.ds-section__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.ds-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.ds-table th,
+.ds-table td {
+  border-bottom: 1px solid var(--ds-surface-container);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.ds-table thead th {
+  background: var(--ds-surface-container-low);
+  color: var(--ds-on-surface-variant);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ds-table tbody tr:hover { background: var(--ds-surface-container-low); }
+
+.ds-grid { display: grid; gap: 24px; }
+.ds-grid--cards { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.ds-grid--split { grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); }
+
+.ds-hero {
+  background: linear-gradient(180deg, var(--ds-surface) 0%, #f8fafc 100%);
+  border-radius: 24px;
+  padding: 48px;
+}
+
+.ds-hero__eyebrow {
+  color: var(--ds-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ds-hero__title {
+  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  margin: 0.5rem 0 1rem;
+}
+
+.ds-hero__subtitle {
+  color: var(--ds-on-surface-variant);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  max-width: 70ch;
+}
+
+.ds-stepper {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.ds-stepper__item {
+  align-items: center;
+  background: var(--ds-surface-container-lowest);
+  border: 1px solid var(--ds-outline-variant);
+  border-radius: 16px;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+}
+
+.ds-stepper__index {
+  align-items: center;
+  background: var(--ds-secondary-container);
+  border-radius: 999px;
+  color: var(--ds-primary);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 800;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.ds-empty-state {
+  align-items: center;
+  border: 1px dashed var(--ds-outline-variant);
+  border-radius: 20px;
+  color: var(--ds-on-surface-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 220px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
