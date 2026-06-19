@@ -1,0 +1,3 @@
+parameters:
+    app.name: market-shop
+    app.chat.upload_dir: '%kernel.project_dir%/public/uploads'

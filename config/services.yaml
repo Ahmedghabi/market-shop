@@ -1,0 +1,53 @@
+imports:
+    - { resource: parameters.yaml }
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        bind:
+            string $oauth2Issuer: '%env(OAUTH2_ISSUER)%'
+            string $oauth2Audience: '%env(OAUTH2_AUDIENCE)%'
+            string $oauth2JwksUri: '%env(OAUTH2_JWKS_URI)%'
+            string $appSecret: '%kernel.secret%'
+            bool $kernelDebug: '%kernel.debug%'
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Service\Workflow\Transition\:
+        resource: '../src/Service/Workflow/Transition/'
+        tags: ['app.workflow.transition']
+
+    App\Service\ImageService:
+        arguments:
+            $uploadDir: '%app.chat.upload_dir%'
+
+    App\Service\MediaService:
+        arguments:
+            $uploadDir: '%app.chat.upload_dir%'
+            $publicDir: '%kernel.project_dir%/public'
+
+    App\Service\AppConfigService:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Command\MediaCleanupCommand:
+        arguments:
+            $uploadDir: '%app.chat.upload_dir%'
+
+    App\Service\Delivery\EncryptionService:
+        arguments:
+            $appSecret: '%kernel.secret%'
+
+    App\State\Chat\MessageProcessor:
+        arguments:
+            $uploadDir: '%app.chat.upload_dir%'
+
+    App\State\Common\FrontendBootstrapProvider:
+        arguments:
+            $projectDir: '%kernel.project_dir%'

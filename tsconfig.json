@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "target": "ES2022"
+  },
+  "include": ["assets/**/*.ts", "assets/**/*.tsx"]
+}

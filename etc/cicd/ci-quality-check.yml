@@ -1,0 +1,3 @@
+quality_check:
+  script:
+    - composer cs-check

@@ -1,0 +1,9 @@
+admin_app_config_get:
+    path: /api/admin/app-config
+    controller: App\Controller\Admin\AppConfigController::getConfig
+    methods: [GET]
+
+admin_app_config_update:
+    path: /api/admin/app-config
+    controller: App\Controller\Admin\AppConfigController::updateConfig
+    methods: [POST]

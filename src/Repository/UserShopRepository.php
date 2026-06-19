@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Repository;
+
+use App\Entity\UserShop;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+/** @extends ServiceEntityRepository<UserShop> */
+final class UserShopRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, UserShop::class);
+    }
+
+    /** @return UserShop[] */
+    public function findByUser(string $userId): array
+    {
+        return $this->createQueryBuilder('us')
+            ->andWhere('us.user = :userId')
+            ->setParameter('userId', $userId)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return UserShop[] */
+    public function findByBoutique(string $boutiqueId): array
+    {
+        return $this->createQueryBuilder('us')
+            ->andWhere('us.boutique = :boutiqueId')
+            ->setParameter('boutiqueId', $boutiqueId)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findOneByUserAndBoutique(string $userId, string $boutiqueId): ?UserShop
+    {
+        return $this->createQueryBuilder('us')
+            ->andWhere('us.user = :userId')
+            ->andWhere('us.boutique = :boutiqueId')
+            ->setParameter('userId', $userId)
+            ->setParameter('boutiqueId', $boutiqueId)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+}

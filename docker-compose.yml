@@ -1,0 +1,106 @@
+services:
+  app:
+    image: market-shop-app:local
+    build:
+      context: .
+      dockerfile: etc/docker/frankenphp/Dockerfile
+      pull: true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.market-shop.rule=Host(`market-shop.localhost`)
+      - traefik.http.routers.market-shop.entrypoints=web
+      - traefik.http.services.market-shop.loadbalancer.server.port=80
+    ports:
+      - "8082:80"
+    volumes:
+      - .:/app
+      - caddy_data:/data
+      - caddy_config:/config
+    working_dir: /app
+    environment:
+      SERVER_NAME: :80
+      APP_RUNTIME: Symfony\Component\Runtime\SymfonyRuntime
+    depends_on:
+      - database
+      - redis
+
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - database_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "8083:80"
+      - "8084:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - app
+
+###> symfony/mercure-bundle ###
+  mercure:
+    image: dunglas/mercure
+    restart: unless-stopped
+    environment:
+      # Uncomment the following line to disable HTTPS,
+      #SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: '!ChangeThisMercureHubJWTSecretKey!'
+      MERCURE_SUBSCRIBER_JWT_KEY: '!ChangeThisMercureHubJWTSecretKey!'
+      # Set the URL of your Symfony project (without trailing slash!) as value of the cors_origins directive
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://127.0.0.1:8000
+    # Comment the following line to disable the development mode
+    command: /usr/bin/caddy run --config /etc/caddy/dev.Caddyfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://localhost/healthz"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - mercure_data:/data
+      - mercure_config:/config
+###< symfony/mercure-bundle ###
+
+  cron:
+    image: market-shop-app:local
+    build:
+      context: .
+      dockerfile: etc/docker/frankenphp/Dockerfile
+    entrypoint: ["sh", "-c", "while true; do php bin/console app:subscription-expiry; php bin/console app:delivery-process; php bin/console app:delivery-retry; sleep 60; done"]
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      APP_RUNTIME: Symfony\Component\Runtime\SymfonyRuntime
+    depends_on:
+      - database
+      - redis
+
+volumes:
+  database_data:
+  caddy_data:
+  caddy_config:
+
+###> symfony/mercure-bundle ###
+  mercure_data:
+  mercure_config:
+###< symfony/mercure-bundle ###

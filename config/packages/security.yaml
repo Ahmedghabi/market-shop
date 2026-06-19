@@ -1,0 +1,79 @@
+security:
+    role_hierarchy:
+        ROLE_SUPER_ADMIN: [ROLE_BOUTIQUE_ADMIN, ROLE_CAISSIER, ROLE_CUSTOMER, ROLE_USER]
+        ROLE_BOUTIQUE_ADMIN: [ROLE_CAISSIER, ROLE_CUSTOMER, ROLE_USER]
+        ROLE_CAISSIER: [ROLE_USER]
+        ROLE_CUSTOMER: [ROLE_USER]
+
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: auto
+
+    providers:
+        app_user_provider:
+            id: App\Security\UserProvider
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\BearerTokenAuthenticator
+            entry_point: App\Security\AuthenticationEntryPoint
+        main:
+            lazy: true
+            provider: app_user_provider
+
+    access_control:
+        - { path: ^/api/health, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/dev-login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/me, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register-shop, roles: PUBLIC_ACCESS }
+        - { path: ^/api/account, roles: ROLE_CUSTOMER }
+        - { path: ^/api/boutiques$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/cart, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/products, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/categories, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/brands, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/media, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/filters, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/payment-methods, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/promotions, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/seo, roles: PUBLIC_ACCESS }
+        - { path: ^/api/favorites, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/cms, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/announcements, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/reviews, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/conversations/[^/]+/messages, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/conversations, roles: PUBLIC_ACCESS }
+        - { path: ^/api/chat/upload, roles: PUBLIC_ACCESS }
+        - { path: ^/api/frontend-bootstrap, roles: PUBLIC_ACCESS }
+        - { path: ^/api/frontend-routes, roles: PUBLIC_ACCESS }
+        - { path: ^/api/routes, roles: PUBLIC_ACCESS }
+        - { path: ^/api/public, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/settings, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/menus, roles: PUBLIC_ACCESS }
+        - { path: ^/api/boutiques/[^/]+/themes, roles: PUBLIC_ACCESS }
+        - { path: ^/api/admin/subscription-plans, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-requests, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/platform-modules, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/permissions, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-modules, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-plans/[^/]+/modules, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/themes, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/announcements, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/payment-methods, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/invoices, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscriptions/[^/]+/invoice, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/notification-providers, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/dashboard/platform, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/app-config, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/boutique/subscription-plans, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/admin, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api, roles: ROLE_USER }
