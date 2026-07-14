@@ -381,11 +381,6 @@ class Boutique extends AbstractEntity implements SoftDeletableInterface
         return $this->settings?->getCheckoutMode()->value ?? 'ACCOUNT_ONLY';
     }
 
-    public function isEnableLoyalty(): bool
-    {
-        return $this->settings?->isEnableLoyalty() ?? false;
-    }
-
     public function isCreateAccountAfterOrder(): bool
     {
         return $this->settings?->isCreateAccountAfterOrder() ?? false;

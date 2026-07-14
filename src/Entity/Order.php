@@ -38,7 +38,7 @@ class Order extends AbstractEntity
         #[ORM\Column]
         private int $totalCents = 0,
         #[ORM\Column(length: 3)]
-        private string $currency = 'EUR',
+        private string $currency = 'TND',
         #[ORM\Column]
         private \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
         #[ORM\Column(length: 240, nullable: true)]
@@ -173,9 +173,19 @@ class Order extends AbstractEntity
         return $this->discountCents;
     }
 
+    public function setDiscountCents(int $discountCents): void
+    {
+        $this->discountCents = $discountCents;
+    }
+
     public function getTotalCents(): int
     {
         return $this->totalCents;
+    }
+
+    public function setTotalCents(int $totalCents): void
+    {
+        $this->totalCents = $totalCents;
     }
 
     public function getCurrency(): string

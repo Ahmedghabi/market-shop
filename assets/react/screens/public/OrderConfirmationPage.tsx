@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Badge, Button, Card } from '../../components/ui';
 
 type LastOrderSummary = {
@@ -27,6 +28,16 @@ export function OrderConfirmationPage() {
     <main className="ds-shell">
       <section className="ds-page py-8 md:py-12">
         <Card className="ds-hero text-center">
+          <motion.div
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+            className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--ds-success-container,#d1fae5)] text-[color:var(--ds-success,#047857)]"
+          >
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </motion.div>
           <Badge tone="success" className="mx-auto">Succès</Badge>
           <h1 className="ds-hero__title mt-4">Commande confirmée</h1>
           <p className="ds-hero__subtitle mx-auto">Votre commande a bien été créée. Vous pouvez garder ce numéro pour le suivi.</p>
@@ -40,7 +51,7 @@ export function OrderConfirmationPage() {
               </div>
               <div>
                 <p className="text-sm text-[color:var(--ds-on-surface-variant)]">Total</p>
-                <strong>{total} {summary?.currency || 'EUR'}</strong>
+                <strong>{total} {summary?.currency || 'TND'}</strong>
               </div>
             </div>
             {summary?.customerName ? (
@@ -48,10 +59,16 @@ export function OrderConfirmationPage() {
             ) : null}
             <div className="mt-4 grid gap-3 md:grid-cols-4">
               {['Confirmée', 'Préparée', 'Expédiée', 'Livrée'].map((step, index) => (
-                <div key={step} className={`rounded-2xl p-3 text-center ${index === 0 ? 'bg-[color:var(--ds-secondary-container)]' : 'bg-[color:var(--ds-surface-container-low)]'}`}>
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 + index * 0.08, duration: 0.35 }}
+                  className={`rounded-2xl p-3 text-center ${index === 0 ? 'bg-[color:var(--ds-secondary-container)]' : 'bg-[color:var(--ds-surface-container-low)]'}`}
+                >
                   <strong className="block">{step}</strong>
                   <span className="text-xs text-[color:var(--ds-on-surface-variant)]">Étape {index + 1}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>

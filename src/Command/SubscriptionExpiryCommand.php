@@ -4,8 +4,10 @@ namespace App\Command;
 
 use App\Entity\Notification;
 use App\Entity\Subscription;
+use App\Repository\BoutiqueExtensionRepository;
 use App\Repository\SubscriptionRepository;
 use App\Repository\UserRepository;
+use App\State\Subscription\SubscriptionExtensionReconciler;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,6 +23,8 @@ final class SubscriptionExpiryCommand extends Command
     public function __construct(
         private readonly SubscriptionRepository $repository,
         private readonly UserRepository $users,
+        private readonly BoutiqueExtensionRepository $boutiqueExtensions,
+        private readonly SubscriptionExtensionReconciler $extensionReconciler,
         private readonly EntityManagerInterface $em,
     ) {
         parent::__construct();
@@ -78,8 +82,9 @@ final class SubscriptionExpiryCommand extends Command
             $this->createNotificationForBoutiqueAdmins($subscription, 'subscription_expired', $message);
             $this->createNotificationForSuperAdmins($subscription, 'subscription_expired', $message);
             $subscription->markAsExpired();
+            $deactivated = $this->extensionReconciler->deactivateAllActiveGrants($boutique);
             ++$notified;
-            $output->writeln(sprintf('  [expiré] %s — %s', $boutique->getName(), $messageEnd));
+            $output->writeln(sprintf('  [expiré] %s — %s (%d extension(s) désactivée(s))', $boutique->getName(), $messageEnd, $deactivated));
         }
 
         $this->em->flush();

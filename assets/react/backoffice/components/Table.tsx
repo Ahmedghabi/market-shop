@@ -1,4 +1,6 @@
+import { motion } from 'framer-motion';
 import type { TableColumn, SortConfig } from '../types';
+import { EmptyState } from './States';
 
 export function Table<T extends { id: string }>({
   columns,
@@ -15,6 +17,10 @@ export function Table<T extends { id: string }>({
   onRowClick?: (item: T) => void;
   isLoading?: boolean;
 }) {
+  if (!isLoading && data.length === 0) {
+    return <EmptyState />;
+  }
+
   return (
     <div className="bo-table-wrapper">
       <table className="bo-table">
@@ -37,11 +43,14 @@ export function Table<T extends { id: string }>({
           </tr>
         </thead>
         <tbody>
-          {data.map((item) => (
-            <tr
+          {data.map((item, index) => (
+            <motion.tr
               key={item.id}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
               style={onRowClick ? { cursor: 'pointer' } : undefined}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.18, delay: Math.min(index, 12) * 0.02 }}
             >
               {columns.map((col) => (
                 <td key={col.key}>{col.render(item)}</td>
@@ -55,15 +64,8 @@ export function Table<T extends { id: string }>({
                   )}
                 </div>
               </td>
-            </tr>
+            </motion.tr>
           ))}
-          {!isLoading && data.length === 0 && (
-            <tr>
-              <td colSpan={columns.length + 1} style={{ textAlign: 'center', padding: 40, color: 'var(--bo-text-muted)' }}>
-                Aucune donnée
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

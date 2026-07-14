@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ShoppingBag, X, Plus, Minus } from 'lucide-react';
 import type { StoreProduct } from './ProductCard';
 import { boutiqueLink } from '../boutiqueRouting';
@@ -23,16 +24,35 @@ export function CartSheet({
       <button onClick={() => setOpen(true)} className="relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--ds-on-surface-variant)] hover:bg-[color:var(--ds-surface-container)] hover:text-[color:var(--ds-on-surface)] transition-colors" aria-label="Panier">
         <ShoppingBag className="h-5 w-5" />
         {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-[color:var(--ds-primary)] text-[10px] font-bold text-white">
+          <motion.span
+            key={count}
+            initial={{ scale: 0.5 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+            className="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-[color:var(--ds-primary)] text-[10px] font-bold text-white"
+          >
             {count}
-          </span>
+          </motion.span>
         )}
       </button>
 
+      <AnimatePresence>
       {open && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface)] shadow-2xl">
+          <motion.div
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
+          />
+          <motion.div
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface)] shadow-2xl"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+          >
             <div className="flex items-center justify-between border-b border-[color:var(--ds-outline-variant)] px-5 py-4">
               <h2 className="text-lg font-bold text-[color:var(--ds-on-surface)]">Votre panier ({count})</h2>
               <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-[color:var(--ds-on-surface-variant)] hover:bg-[color:var(--ds-surface-container)]">
@@ -44,8 +64,16 @@ export function CartSheet({
               {items.length === 0 && (
                 <p className="py-12 text-center text-sm text-[color:var(--ds-on-surface-variant)]">Votre panier est vide.</p>
               )}
+              <AnimatePresence initial={false}>
               {items.map((i) => (
-                <div key={i.product.id} className="flex gap-3 border-b border-[color:var(--ds-outline-variant)] pb-4">
+                <motion.div
+                  key={i.product.id}
+                  layout
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 24, height: 0, marginBottom: 0, paddingBottom: 0 }}
+                  className="flex gap-3 border-b border-[color:var(--ds-outline-variant)] pb-4"
+                >
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[color:var(--ds-surface-container)]">
                     {(() => {
                       const imgUrl = Array.isArray(i.product.images)
@@ -75,8 +103,9 @@ export function CartSheet({
                     </div>
                   </div>
                   <div className="text-sm font-bold text-[color:var(--ds-on-surface)]">{(i.qty * i.product.priceCents / 100).toFixed(0)} {i.product.currency}</div>
-                </div>
+                </motion.div>
               ))}
+              </AnimatePresence>
             </div>
 
             <div className="border-t border-[color:var(--ds-outline-variant)] px-5 py-4 space-y-3">
@@ -93,9 +122,10 @@ export function CartSheet({
                 Passer commande
               </a>
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
     </>
   );
 }

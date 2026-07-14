@@ -54,6 +54,23 @@ final class SubscriptionPlanProvider implements ProviderInterface
         $output->isVisible = $entity->isVisible();
         $output->isActive = $entity->isActive();
         $output->modules = $entity->getModules();
+        $output->currency = $entity->getCurrency();
+        $output->displayOrder = $entity->getDisplayOrder();
+        $output->themes = array_map(
+            static fn ($theme) => ['id' => (string) $theme->getId(), 'code' => $theme->getCode(), 'name' => $theme->getName()],
+            $entity->getThemes()->toArray(),
+        );
+
+        $quotas = [];
+        foreach ($entity->getPlanQuotas() as $planQuota) {
+            $quotas[] = [
+                'quotaCode' => $planQuota->getQuota()->getCode(),
+                'quotaName' => $planQuota->getQuota()->getName(),
+                'limitValue' => $planQuota->getLimitValue(),
+            ];
+        }
+        $output->quotas = $quotas;
+
         $output->createdAt = $entity->getCreatedAt()->format('c');
         $output->updatedAt = $entity->getUpdatedAt()?->format('c');
 

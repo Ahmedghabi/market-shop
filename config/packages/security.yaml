@@ -46,6 +46,12 @@ security:
         - { path: ^/api/promotions, roles: PUBLIC_ACCESS }
         - { path: ^/api/coupons, roles: PUBLIC_ACCESS }
         - { path: ^/api/delivery-rules, roles: PUBLIC_ACCESS }
+        - { path: ^/api/delivery-accounts, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/delivery/companies, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/delivery/shipments, roles: ROLE_CAISSIER }
+        - { path: ^/api/admin/delivery-companies, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/delivery-endpoints, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/delivery, roles: ROLE_SUPER_ADMIN }
         - { path: ^/api/payment-methods, roles: PUBLIC_ACCESS }
         - { path: ^/api/cms, roles: PUBLIC_ACCESS }
         - { path: ^/api/announcements, roles: PUBLIC_ACCESS }
@@ -55,6 +61,8 @@ security:
         - { path: ^/api/sponsors, roles: PUBLIC_ACCESS }
         - { path: ^/api/subscriptions, roles: PUBLIC_ACCESS }
         - { path: ^/api/subscription-requests, roles: PUBLIC_ACCESS }
+        - { path: ^/api/extension-requests, roles: PUBLIC_ACCESS }
+        - { path: ^/api/extensions, roles: PUBLIC_ACCESS }
         - { path: ^/api/themes, roles: PUBLIC_ACCESS }
         - { path: ^/api/settings, roles: PUBLIC_ACCESS }
         - { path: ^/api/menus, roles: PUBLIC_ACCESS }
@@ -82,11 +90,22 @@ security:
         - { path: ^/api/admin/app-config, roles: ROLE_SUPER_ADMIN }
         - { path: ^/api/admin/webhooks, roles: ROLE_SUPER_ADMIN }
         - { path: ^/api/admin/audit-logs, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/quota-definitions, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/plan-quotas, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription-plans/[^/]+/quotas, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/extensions, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/extension-requests, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin/subscription/stats, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/subscription/summary, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/subscription/plan-change/preview, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/subscription/renew, roles: ROLE_BOUTIQUE_ADMIN }
         - { path: ^/api/admin/refunds, roles: ROLE_BOUTIQUE_ADMIN }
         - { path: ^/api/admin/coupons, roles: ROLE_BOUTIQUE_ADMIN }
         - { path: ^/api/boutique/subscription-plans, roles: ROLE_BOUTIQUE_ADMIN }
+        - { path: ^/api/boutique/loyalty, roles: ROLE_BOUTIQUE_ADMIN }
         - { path: ^/api/me/sessions, roles: ROLE_USER }
         - { path: ^/api/me/orders, roles: ROLE_CUSTOMER }
+        - { path: ^/api/me/loyalty, roles: ROLE_CUSTOMER }
         - { path: ^/api/me, roles: ROLE_USER }
         - { path: ^/api/admin, roles: ROLE_BOUTIQUE_ADMIN }
         - { path: ^/api, roles: ROLE_USER }

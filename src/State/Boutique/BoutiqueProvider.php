@@ -92,6 +92,7 @@ final class BoutiqueProvider implements ProviderInterface
             $output->address = $settings->getAddress();
             $output->socialLinks = $settings->getSocialLinks();
             $output->colorPalette = $settings->getColorPalette();
+            $output->theme = $settings->getTheme();
             $output->fontFamily = $settings->getFontFamily();
             $output->fontSize = $settings->getFontSize();
             $output->borderRadius = $settings->getBorderRadius();

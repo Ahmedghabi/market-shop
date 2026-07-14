@@ -2,16 +2,23 @@
 
 namespace App\Dto\Delivery;
 
-use Symfony\Component\Validator\Constraints as Assert;
-
 final class BoutiqueDeliveryAccountInput
 {
-    #[Assert\NotBlank]
-    public string $deliveryCompanyId;
+    public ?string $deliveryCompanyId = null;
 
-    #[Assert\NotBlank]
-    public string $login;
+    public ?string $login = null;
 
-    #[Assert\NotBlank]
-    public string $password;
+    public ?string $password = null;
+
+    public ?string $apiKey = null;
+
+    public ?string $token = null;
+
+    public ?string $secret = null;
+
+    public ?string $customBaseUrl = null;
+
+    public ?bool $isActive = null;
+
+    public ?bool $isDefault = null;
 }

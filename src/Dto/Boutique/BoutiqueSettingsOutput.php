@@ -36,9 +36,6 @@ final class BoutiqueSettingsOutput
     public bool $enableEmailVerification;
     public bool $enableCustomerEmailVerification;
     public bool $createAccountAfterOrder;
-    public bool $enableLoyalty;
-    public int $loyaltyPointsPerAmount;
-    public int $loyaltyAmountCents;
     public ?string $facebookUrl;
     public ?string $instagramUrl;
     public ?string $tiktokUrl;

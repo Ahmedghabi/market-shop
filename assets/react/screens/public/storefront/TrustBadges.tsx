@@ -1,7 +1,7 @@
 import { Truck, RotateCcw, ShieldCheck, Headphones } from 'lucide-react';
 
 const items = [
-  { icon: Truck, title: 'Livraison offerte', desc: 'Dès 60€ d\'achat' },
+  { icon: Truck, title: 'Livraison offerte', desc: 'Dès 60 DT d\'achat' },
   { icon: RotateCcw, title: 'Retours 30 jours', desc: 'Satisfait ou remboursé' },
   { icon: ShieldCheck, title: 'Paiement sécurisé', desc: 'CB, Apple Pay, PayPal' },
   { icon: Headphones, title: 'Support 7j/7', desc: 'Une équipe dédiée' },

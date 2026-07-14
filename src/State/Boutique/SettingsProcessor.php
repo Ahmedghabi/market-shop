@@ -9,6 +9,7 @@ use App\Dto\Boutique\BoutiqueSettingsOutput;
 use App\Repository\BoutiqueRepository;
 use App\Security\BoutiqueContext;
 use App\Service\FrontOfficeCacheService;
+use App\Service\Theme\ThemePresetRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -22,6 +23,8 @@ final readonly class SettingsProcessor implements ProcessorInterface
         private BoutiqueContext $context,
         private FrontOfficeCacheService $cache,
         private SettingsProvider $provider,
+        private ThemePresetRegistry $themePresets,
+        private \App\Repository\ThemeRepository $themes,
     ) {
     }
 
@@ -107,7 +110,7 @@ final readonly class SettingsProcessor implements ProcessorInterface
             $s->setBorderRadius($d->borderRadius);
         }
         if (null !== $d->theme) {
-            $s->setTheme($d->theme);
+            $this->applyThemePreset($s, $d->theme);
         }
         if (null !== $d->metaPixelId) {
             $s->setMetaPixelId($d->metaPixelId);
@@ -141,15 +144,6 @@ final readonly class SettingsProcessor implements ProcessorInterface
         }
         if (null !== $d->createAccountAfterOrder) {
             $s->setCreateAccountAfterOrder($d->createAccountAfterOrder);
-        }
-        if (null !== $d->enableLoyalty) {
-            $s->setEnableLoyalty($d->enableLoyalty);
-        }
-        if (null !== $d->loyaltyPointsPerAmount) {
-            $s->setLoyaltyPointsPerAmount($d->loyaltyPointsPerAmount);
-        }
-        if (null !== $d->loyaltyAmountCents) {
-            $s->setLoyaltyAmountCents($d->loyaltyAmountCents);
         }
     }
 
@@ -257,5 +251,35 @@ final readonly class SettingsProcessor implements ProcessorInterface
         }
 
         return $colorPalette;
+    }
+
+    private function applyThemePreset(\App\Entity\BoutiqueSettings $settings, string $themeCode): void
+    {
+        $theme = $this->themes->findOneByCode($themeCode);
+        if (!$theme instanceof \App\Entity\Theme || !$theme->isActive()) {
+            throw new \Symfony\Component\HttpKernel\Exception\BadRequestHttpException('Thème invalide ou inactif.');
+        }
+
+        $preset = $this->themePresets->get($themeCode);
+        if (null === $preset) {
+            $settings->setTheme($themeCode);
+
+            return;
+        }
+
+        $settings->setTheme($themeCode);
+        $settings->setColorPalette($preset['colorPalette']);
+        $settings->setFontFamily($preset['fontFamily']);
+        $settings->setBorderRadius($preset['borderRadius']);
+        $settings->updateContact(
+            $settings->getLogoUrl(),
+            $preset['primaryColor'],
+            $preset['secondaryColor'],
+            $settings->getDomain(),
+            $settings->getContactEmail(),
+            $settings->getContactPhone(),
+            $settings->getAddress(),
+            $settings->getSocialLinks(),
+        );
     }
 }

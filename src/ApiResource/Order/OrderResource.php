@@ -33,7 +33,7 @@ final class OrderResource
     public int $subtotalCents = 0;
     public int $discountCents = 0;
     public int $totalCents = 0;
-    public string $currency = 'EUR';
+    public string $currency = 'TND';
     /** @var list<array{productId?: string, quantity: int}> */
     public array $items = [];
 }

@@ -96,7 +96,7 @@ export function BoutiqueCentralPage({ title, description }: { title: string; des
               <div className="mt-8 flex flex-wrap gap-4">
                 <div className="rounded-2xl border border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface-container-lowest)]/85 p-5 max-w-sm backdrop-blur">
                   <p className="text-xs font-bold uppercase tracking-[0.15em] text-[color:var(--ds-on-surface-variant)]">Créer ta boutique</p>
-                  <strong className="mt-1 block text-lg">Commence avec 29 € / mois</strong>
+                  <strong className="mt-1 block text-lg">Commence gratuitement, dès 99 DT / mois</strong>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface-container-lowest)]/85 p-5 max-w-sm backdrop-blur">
                   <p className="text-xs font-bold uppercase tracking-[0.15em] text-[color:var(--ds-on-surface-variant)]">Aucune carte de crédit requise</p>

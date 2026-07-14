@@ -19,6 +19,7 @@ use App\Entity\Country;
 use App\Entity\Customer;
 use App\Entity\CustomerNotification;
 use App\Entity\DeliveryCompany;
+use App\Entity\DeliveryEndpoint;
 use App\Entity\DeliveryRule;
 use App\Entity\Governorate;
 use App\Entity\Locality;
@@ -50,6 +51,8 @@ use App\Enum\CmsPageStatus;
 use App\Enum\CmsPageType;
 use App\Enum\CouponScope;
 use App\Enum\CouponType;
+use App\Enum\DeliveryAuthType;
+use App\Enum\DeliveryEndpointType;
 use App\Enum\DeliveryRuleType;
 use App\Enum\OrderChannel;
 use App\Enum\OrderStatus;
@@ -62,7 +65,6 @@ use App\Enum\PromotionType;
 use App\Enum\SubscriptionStatus;
 use App\Enum\UserStatus;
 use Doctrine\Bundle\FixturesBundle\Fixture;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
 use Faker\Generator;
@@ -83,6 +85,8 @@ final class AppFixtures extends Fixture
         $subscriptionPlan = $this->createSubscriptionPlan($manager);
 
         $manager->persist(new Theme('Hanooti Glass', 'hanooti-glass', '/images/themes/hanooti-glass.jpg', true, true));
+        $manager->persist(new Theme('Nordic Editorial', 'nordic-editorial', '/images/themes/nordic-editorial.jpg', true, false));
+        $manager->persist(new Theme('Ocean Minimal', 'ocean-minimal', '/images/themes/ocean-minimal.jpg', true, false));
 
         $superAdmin = $this->createUser($manager, null, 'super-admin.fixture@hanooti.local', ['ROLE_SUPER_ADMIN'], 'Super', 'Admin');
 
@@ -162,9 +166,9 @@ final class AppFixtures extends Fixture
     private function createPaymentMethods(ObjectManager $manager): array
     {
         $definitions = [
-            ['Paiement a la livraison', 'cash_on_delivery', PaymentMethodType::CashOnDelivery],
-            ['Virement bancaire', 'bank_transfer', PaymentMethodType::BankTransfer],
-            ['Carte bancaire demo', 'card_demo', PaymentMethodType::CardPayment],
+            ['Paiement a la livraison', 'CASH_ON_DELIVERY', PaymentMethodType::CashOnDelivery],
+            ['Virement bancaire', 'BANK_TRANSFER', PaymentMethodType::BankTransfer],
+            ['Carte bancaire demo', 'CARD_DEMO', PaymentMethodType::CardPayment],
         ];
         $methods = [];
 
@@ -180,15 +184,41 @@ final class AppFixtures extends Fixture
     private function createDeliveryCompany(ObjectManager $manager): DeliveryCompany
     {
         $company = new DeliveryCompany(
-            'Demo Delivery',
-            'demo-delivery',
-            'https://delivery.example.test',
-            '/auth/token',
-            '/orders',
-            '/orders/{tracking}',
-            'Transporteur fictif pour tester les livraisons.',
+            name: 'Demo Delivery',
+            slug: 'demo-delivery',
+            baseUrl: 'https://delivery.example.test',
+            provider: 'generic_http',
+            authType: DeliveryAuthType::Basic,
+            authConfig: [],
+            mappingConfig: [
+                'receiver' => '{{customer.full_name}}',
+                'phone' => '{{customer.phone|phone}}',
+                'address' => '{{address.full_address}}',
+                'city' => '{{address.city}}',
+                'amount' => '{{order.total}}',
+                'reference' => '{{order.number}}',
+            ],
+            parametersConfig: ['timeout' => 15],
+            logoUrl: null,
+            description: 'Transporteur fictif pour tester les livraisons.',
         );
         $manager->persist($company);
+
+        $endpoints = [
+            [DeliveryEndpointType::Auth, 'Authentification', '/auth/token', 'POST'],
+            [DeliveryEndpointType::CreateShipment, 'Création de colis', '/orders', 'POST'],
+            [DeliveryEndpointType::TrackShipment, 'Suivi de colis', '/orders/{tracking}', 'GET'],
+            [DeliveryEndpointType::CancelShipment, 'Annulation de colis', '/orders/{tracking}/cancel', 'POST'],
+        ];
+        foreach ($endpoints as [$type, $name, $url, $method]) {
+            $manager->persist(new DeliveryEndpoint(
+                company: $company,
+                type: $type,
+                name: $name,
+                url: $url,
+                httpMethod: \App\Enum\DeliveryHttpMethod::from($method),
+            ));
+        }
 
         return $company;
     }
@@ -196,16 +226,15 @@ final class AppFixtures extends Fixture
     private function createSubscriptionPlan(ObjectManager $manager): SubscriptionPlan
     {
         $plan = new SubscriptionPlan(
-            'Demo Premium',
-            'Plan demo complet.',
-            12,
-            499,
-            false,
-            true,
-            true,
-            ['reviews', 'wishlist', 'loyalty', 'coupons', 'promotions', 'blog', 'brands', 'chatbot', 'analytics'],
-            'llama3.2:1b',
-            new ArrayCollection(),
+            name: 'Demo Premium',
+            description: 'Plan demo complet.',
+            durationMonths: 12,
+            priceTnd: 499,
+            isFree: false,
+            isVisible: true,
+            isActive: true,
+            modules: ['reviews', 'wishlist', 'loyalty', 'coupons', 'promotions', 'blog', 'brands', 'chatbot', 'analytics'],
+            chatbotModel: 'llama3.2:1b',
         );
         $manager->persist($plan);
 
@@ -317,7 +346,6 @@ final class AppFixtures extends Fixture
         );
         $settings->setSlogan($this->faker->catchPhrase());
         $settings->setDescription($this->faker->paragraph());
-        $settings->setEnableLoyalty(true);
         $manager->persist($settings);
     }
 
@@ -501,7 +529,7 @@ final class AppFixtures extends Fixture
 
             $governorate = $governorates[$i % count($governorates)];
             $locality = $localities[$i % count($localities)];
-            $customer = new Customer($boutique, $email, $firstName, $lastName, $this->faker->phoneNumber(), user: $user, loyaltyPoints: $this->faker->numberBetween(0, 900));
+            $customer = new Customer($boutique, $email, $firstName, $lastName, $this->faker->phoneNumber(), user: $user);
             $customer->setAddressSnapshot(
                 $this->faker->streetAddress(),
                 $locality->getName(),

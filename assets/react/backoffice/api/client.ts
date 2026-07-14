@@ -64,6 +64,7 @@ export class ApiClient {
   patch<T>(path: string, body: unknown): Promise<T> {
     return this.request<T>(path, {
       method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
       body: JSON.stringify(body),
     });
   }

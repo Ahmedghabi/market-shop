@@ -29,7 +29,7 @@ class Cart extends AbstractEntity
         #[ORM\Column(length: 32, enumType: CartStatus::class)]
         private CartStatus $status = CartStatus::Active,
         #[ORM\Column(length: 3)]
-        private string $currency = 'EUR',
+        private string $currency = 'TND',
         #[ORM\Column]
         private \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
         #[ORM\Column]
@@ -99,7 +99,7 @@ class Cart extends AbstractEntity
             return $item;
         }
 
-        $item = new CartItem($this, $product, $quantity, $product->getPriceCents());
+        $item = new CartItem($this, $product, $quantity, $product->getSellingPrice());
         $this->items->add($item);
         $this->touch();
 

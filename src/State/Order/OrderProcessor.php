@@ -8,6 +8,7 @@ use App\Entity\Order;
 use App\Enum\OrderStatus;
 use App\Enum\PaymentStatus;
 use App\Repository\OrderRepository;
+use App\Service\Loyalty\LoyaltyEngine;
 use App\Service\Webhook\WebhookService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,6 +24,7 @@ final readonly class OrderProcessor implements ProcessorInterface
         private OrderRepository $orders,
         private EntityManagerInterface $em,
         private WebhookService $webhookService,
+        private LoyaltyEngine $loyaltyEngine,
     ) {
     }
 
@@ -89,11 +91,19 @@ final readonly class OrderProcessor implements ProcessorInterface
                 OrderStatus::Cancelled => $this->webhookService->dispatchEvent('order.cancelled', $payload, $boutiqueId),
                 default => null,
             };
+
+            // Loyalty earn/reversal hooks — LoyaltyEngine is the only service allowed to compute these.
+            match ($order->getStatus()) {
+                OrderStatus::Paid => $this->loyaltyEngine->earnForOrder($order),
+                OrderStatus::Cancelled => $this->loyaltyEngine->reverseForOrder($order, 1.0),
+                default => null,
+            };
         }
 
         // Dispatch order.paid when payment status changed to Paid (even if order status didn't change)
         if ($previousPaymentStatus !== $order->getPaymentStatus() && PaymentStatus::Paid === $order->getPaymentStatus()) {
             $this->webhookService->dispatchEvent('order.paid', $payload, $boutiqueId);
+            $this->loyaltyEngine->earnForOrder($order);
         }
 
         return $data;

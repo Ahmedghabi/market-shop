@@ -115,7 +115,7 @@ class Product extends AbstractEntity implements SoftDeletableInterface
         #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?Brand $brand = null,
         #[ORM\Column(length: 3)]
-        private string $currency = 'EUR',
+        private string $currency = 'TND',
         #[ORM\ManyToOne(targetEntity: Category::class, inversedBy: 'products')]
         #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?Category $category = null,

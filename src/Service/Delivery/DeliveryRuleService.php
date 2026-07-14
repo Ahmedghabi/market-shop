@@ -24,7 +24,12 @@ final readonly class DeliveryRuleService
         float $weightKg = 0.0,
         float $distanceKm = 0.0,
     ): int {
-        $rules = $this->rules->findActiveByBoutique($boutiqueId);
+        $boutique = $this->em->find(Boutique::class, $boutiqueId);
+        if (!$boutique instanceof Boutique) {
+            return 0;
+        }
+
+        $rules = $this->rules->findActiveByBoutique($boutique);
 
         foreach ($rules as $rule) {
             if ($rule->matches($weightKg, $distanceKm, $cartAmountCents)) {
@@ -134,7 +139,12 @@ final readonly class DeliveryRuleService
 
     public function getRulesForBoutique(string $boutiqueId): array
     {
-        return $this->rules->findByBoutique($boutiqueId);
+        $boutique = $this->em->find(Boutique::class, $boutiqueId);
+        if (!$boutique instanceof Boutique) {
+            return [];
+        }
+
+        return $this->rules->findByBoutique($boutique);
     }
 
     public function getRuleById(string $ruleId): ?DeliveryRule

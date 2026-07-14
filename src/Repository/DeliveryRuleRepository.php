@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Boutique;
 use App\Entity\DeliveryRule;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -15,21 +16,23 @@ final class DeliveryRuleRepository extends ServiceEntityRepository
     }
 
     /** @return list<DeliveryRule> */
-    public function findActiveByBoutique(string $boutiqueId): array
+    public function findActiveByBoutique(Boutique $boutique): array
     {
         return $this->createQueryBuilder('dr')
-            ->andWhere('dr.boutique = :boutiqueId')
-            ->andWhere('dr.isActive = 1')
+            ->andWhere('dr.boutique = :boutique')
+            ->andWhere('dr.isActive = true')
+            ->setParameter('boutique', $boutique)
             ->orderBy('dr.priority', 'DESC')
             ->getQuery()
             ->getResult();
     }
 
     /** @return list<DeliveryRule> */
-    public function findByBoutique(string $boutiqueId, int $limit = 50, int $offset = 0): array
+    public function findByBoutique(Boutique $boutique, int $limit = 50, int $offset = 0): array
     {
         return $this->createQueryBuilder('dr')
-            ->andWhere('dr.boutique = :boutiqueId')
+            ->andWhere('dr.boutique = :boutique')
+            ->setParameter('boutique', $boutique)
             ->orderBy('dr.priority', 'DESC')
             ->setMaxResults($limit)
             ->setFirstResult($offset)

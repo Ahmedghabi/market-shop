@@ -40,6 +40,7 @@ final class BoutiqueOutput
     public bool $isVisiblePublicly = false;
 
     public array $colorPalette = [];
+    public ?string $theme = null;
     public ?string $fontFamily = null;
     public ?string $fontSize = null;
     public ?string $borderRadius = null;

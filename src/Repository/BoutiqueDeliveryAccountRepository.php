@@ -52,4 +52,30 @@ final class BoutiqueDeliveryAccountRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function findDefaultForBoutique(Boutique $boutique): ?BoutiqueDeliveryAccount
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.boutique = :boutique')
+            ->andWhere('a.isDefault = :default')
+            ->andWhere('a.isActive = :active')
+            ->setParameter('boutique', $boutique)
+            ->setParameter('default', true)
+            ->setParameter('active', true)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function clearDefaultForBoutique(Boutique $boutique): void
+    {
+        $this->createQueryBuilder('a')
+            ->update()
+            ->set('a.isDefault', ':false')
+            ->andWhere('a.boutique = :boutique')
+            ->setParameter('false', false)
+            ->setParameter('boutique', $boutique)
+            ->getQuery()
+            ->execute();
+    }
 }

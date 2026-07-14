@@ -15,8 +15,10 @@ use App\Repository\CategoryRepository;
 use App\Security\BoutiqueContext;
 use App\Service\FrontOfficeCacheService;
 use App\Service\SeoService;
+use App\Service\Subscription\SubscriptionManager;
 use App\State\Common\BoutiqueWriteResolverTrait;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /** @implements ProcessorInterface<CategoryInput, CategoryOutput|null> */
@@ -34,6 +36,7 @@ final readonly class CategoryProcessor implements ProcessorInterface
         private CategoryProvider $provider,
         private SeoService $seo,
         private FrontOfficeCacheService $cache,
+        private SubscriptionManager $subscriptionManager,
     ) {
         $this->slugger = new AsciiSlugger();
     }
@@ -60,6 +63,10 @@ final readonly class CategoryProcessor implements ProcessorInterface
         $category = isset($uriVariables['id']) ? $this->categories->find((string) $uriVariables['id']) : null;
 
         if (!$category instanceof Category) {
+            if (!$this->subscriptionManager->canCreateCategory($boutique)) {
+                throw new BadRequestHttpException('Quota catégories atteint ou abonnement inactif. Souscrivez à une extension ou changez de plan.');
+            }
+
             $slug = $this->resolveSlug($data, $boutique, null);
             $category = new Category(
                 boutique: $boutique,

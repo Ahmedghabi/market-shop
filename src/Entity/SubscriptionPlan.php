@@ -30,16 +30,29 @@ class SubscriptionPlan extends AbstractEntity
         private ?array $modules = null,
         #[ORM\Column(length: 64, nullable: true)]
         private ?string $chatbotModel = null,
+        #[ORM\Column(length: 8)]
+        private string $currency = 'TND',
+        #[ORM\Column]
+        private int $displayOrder = 0,
 
-        /** @var Collection<int, SubscriptionModule> */
+        /** @var Collection<int, SubscriptionModule>|null */
         #[ORM\OneToMany(mappedBy: 'plan', targetEntity: SubscriptionModule::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-        private Collection $subscriptionModules,
+        private ?Collection $subscriptionModules = null,
+        /** @var Collection<int, PlanQuota>|null */
+        #[ORM\OneToMany(mappedBy: 'plan', targetEntity: PlanQuota::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+        private ?Collection $planQuotas = null,
+        /** @var Collection<int, Theme>|null */
+        #[ORM\ManyToMany(targetEntity: Theme::class)]
+        #[ORM\JoinTable(name: 'subscription_plan_theme')]
+        private ?Collection $themes = null,
         #[ORM\Column]
         private \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
         #[ORM\Column(nullable: true)]
         private ?\DateTimeImmutable $updatedAt = null,
     ) {
-        $this->subscriptionModules = new ArrayCollection();
+        $this->subscriptionModules = $this->subscriptionModules ?? new ArrayCollection();
+        $this->planQuotas = $this->planQuotas ?? new ArrayCollection();
+        $this->themes = $this->themes ?? new ArrayCollection();
         parent::__construct();
     }
 
@@ -139,6 +152,72 @@ class SubscriptionPlan extends AbstractEntity
     public function setChatbotModel(?string $chatbotModel): void
     {
         $this->chatbotModel = $chatbotModel;
+        $this->touch();
+    }
+
+    public function getCurrency(): string
+    {
+        return $this->currency;
+    }
+
+    public function setCurrency(string $currency): void
+    {
+        $this->currency = $currency;
+        $this->touch();
+    }
+
+    public function getDisplayOrder(): int
+    {
+        return $this->displayOrder;
+    }
+
+    public function setDisplayOrder(int $displayOrder): void
+    {
+        $this->displayOrder = $displayOrder;
+        $this->touch();
+    }
+
+    /** @return Collection<int, PlanQuota> */
+    public function getPlanQuotas(): Collection
+    {
+        return $this->planQuotas;
+    }
+
+    public function addPlanQuota(PlanQuota $planQuota): void
+    {
+        if (!$this->planQuotas->contains($planQuota)) {
+            $this->planQuotas->add($planQuota);
+        }
+    }
+
+    public function removePlanQuota(PlanQuota $planQuota): void
+    {
+        $this->planQuotas->removeElement($planQuota);
+    }
+
+    /** @return Collection<int, Theme> */
+    public function getThemes(): Collection
+    {
+        return $this->themes;
+    }
+
+    public function addTheme(Theme $theme): void
+    {
+        if (!$this->themes->contains($theme)) {
+            $this->themes->add($theme);
+        }
+        $this->touch();
+    }
+
+    public function removeTheme(Theme $theme): void
+    {
+        $this->themes->removeElement($theme);
+        $this->touch();
+    }
+
+    public function setThemes(Collection $themes): void
+    {
+        $this->themes = $themes;
         $this->touch();
     }
 

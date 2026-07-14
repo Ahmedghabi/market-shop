@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChatBox } from '../../chat/ChatBox';
 import { StorefrontTheme, type StoreBoutique, type StoreProduct } from './storefront/StorefrontTheme';
-import { applyBoutiqueTheme } from '../../theme/boutiqueTheme';
+import { applyBoutiqueTheme, applyStorefrontCssVars } from '../../theme/boutiqueTheme';
 import { authHeaders, resolveBoutiqueSlug } from './boutiqueRouting';
 
 function applyThemeToRoot(data: any): void {
@@ -16,7 +16,9 @@ function applyThemeToRoot(data: any): void {
     frontOfficePages: data.frontOfficePages ?? [],
     navigationItems: data.navigationItems ?? [],
   });
+  applyStorefrontCssVars(data.colorPalette);
   const root = document.documentElement;
+  if (data.theme) root.dataset.storefrontTheme = data.theme;
   if (data.fontFamily) root.style.setProperty('--ds-font-family', data.fontFamily);
   if (data.fontSize) root.style.setProperty('--ds-font-size', data.fontSize);
   if (data.borderRadius) {

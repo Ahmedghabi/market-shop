@@ -8,6 +8,7 @@ Encore
   .enableStimulusBridge('./assets/controllers.json')
   .enableReactPreset()
   .enableTypeScriptLoader()
+  .enablePostCssLoader()
   .enableSingleRuntimeChunk()
   .addPlugin(new webpack.DefinePlugin({
     'process.env.OAUTH2_AUTHORITY': JSON.stringify(process.env.OAUTH2_AUTHORITY || ''),

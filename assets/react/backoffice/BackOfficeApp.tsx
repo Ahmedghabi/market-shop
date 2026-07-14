@@ -13,15 +13,18 @@ import { CustomersPage } from './pages/customers/CustomersPage';
 import { PromotionsPage } from './pages/promotions/PromotionsPage';
 import { CmsManagementPage } from './pages/cms/CmsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { FrontOfficePage } from './pages/front-office/FrontOfficePage';
 import { ReviewsPage } from './pages/reviews/ReviewsPage';
 import { EmployeesPage } from './pages/employees/EmployeesPage';
 import { SubscriptionsPage } from './pages/subscriptions/SubscriptionsPage';
+import { DeliveryPage } from './pages/delivery/DeliveryPage';
 import { SuperAdminPage } from './pages/super-admin/SuperAdminPage';
 import { BoutiqueAdminsPage } from './pages/boutique-admins/BoutiqueAdminsPage';
 import { Card, CardBody } from './components/Card';
+import { LoadingState } from './components/States';
 import type { BackOfficeAccess, Boutique } from './types';
 
-type PageProps = { getAccessToken: () => string | null };
+type PageProps = { getAccessToken: () => string | null; userRoles?: string[] };
 type RouteGate = { moduleAliases?: string[]; permissions?: string[]; roles?: string[]; sensitive?: boolean };
 const authStorageKey = 'market-shop.auth';
 
@@ -44,9 +47,12 @@ const routeGates: Record<string, RouteGate> = {
   promotions: { moduleAliases: ['promotions', 'coupons'], permissions: ['marketing.promotion.manage', 'marketing.coupon.manage', 'promotions', 'coupons'] },
   reviews: { moduleAliases: ['reviews'], permissions: ['review.read', 'view_reviews'] },
   cms: { moduleAliases: ['cms', 'blog'], permissions: ['cms.page.read', 'cms_access', 'cms', 'blog'] },
+  appearance: { permissions: ['shop.appearance.manage', 'shop.settings.manage'], sensitive: true },
+  theme: { permissions: ['shop.appearance.manage', 'shop.settings.manage'], sensitive: true },
   settings: { permissions: ['shop.settings.manage'], sensitive: true },
   employees: { moduleAliases: ['employees'], permissions: ['employee.read'], sensitive: true },
   subscriptions: { permissions: ['subscription.plan.read'], sensitive: true },
+  delivery: { permissions: ['shop.delivery_account.manage', 'order.delivery.manage'], sensitive: true },
   boutiques: { roles: ['ROLE_SUPER_ADMIN'] },
   'boutique-admins': { roles: ['ROLE_SUPER_ADMIN'] },
   'super-admin': { roles: ['ROLE_SUPER_ADMIN'] },
@@ -63,9 +69,12 @@ function resolvePage(slug: string, props: PageProps) {
     promotions: (p) => <PromotionsPage {...p} />,
     reviews: (p) => <ReviewsPage {...p} />,
     cms: (p) => <CmsManagementPage {...p} />,
+    appearance: (p) => <FrontOfficePage {...p} />,
+    theme: (p) => <FrontOfficePage {...p} />,
     settings: (p) => <SettingsPage {...p} />,
     employees: (p) => <EmployeesPage {...p} />,
     subscriptions: (p) => <SubscriptionsPage {...p} />,
+    delivery: (p) => <DeliveryPage {...p} />,
     boutiques: (p) => <SuperAdminPage {...p} />,
     'boutique-admins': (p) => <BoutiqueAdminsPage {...p} />,
     'super-admin': (p) => <SuperAdminPage {...p} />,
@@ -134,6 +143,7 @@ export function BackOfficeApp({
     userBoutiques.map((b) => ({ id: b.id, name: b.name, slug: b.slug, status: b.status, customDomain: b.customDomain, isVisiblePublicly: b.isVisiblePublicly }))
   );
   const [access, setAccess] = useState<BackOfficeAccess | null>(null);
+  const [accessLoading, setAccessLoading] = useState(true);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -156,8 +166,11 @@ export function BackOfficeApp({
     const token = getAccessToken();
     if (!token) {
       setAccess(null);
+      setAccessLoading(false);
       return;
     }
+
+    setAccessLoading(true);
 
     if (!boutique) {
       fetch('/api/admin/dashboard/modules', { headers: { Authorization: `Bearer ${token}` } })
@@ -171,7 +184,8 @@ export function BackOfficeApp({
             roles: userRoles,
           });
         })
-        .catch(() => setAccess(null));
+        .catch(() => setAccess(null))
+        .finally(() => setAccessLoading(false));
       return;
     }
 
@@ -187,7 +201,8 @@ export function BackOfficeApp({
           roles: boutiqueAccess.roles ?? userRoles,
         });
       })
-      .catch(() => setAccess(null));
+      .catch(() => setAccess(null))
+      .finally(() => setAccessLoading(false));
   }, [boutique?.id, getAccessToken, userRoles.join('|')]);
 
   return (
@@ -202,6 +217,7 @@ export function BackOfficeApp({
           boutiques={boutiques}
           onBoutiqueChange={setBoutique}
           access={access}
+          accessLoading={accessLoading}
           getAccessToken={getAccessToken}
           onSignOut={onSignOut}
         />
@@ -219,6 +235,7 @@ function InnerApp({
   boutiques,
   onBoutiqueChange,
   access,
+  accessLoading,
   getAccessToken,
   onSignOut,
 }: {
@@ -230,9 +247,12 @@ function InnerApp({
   boutiques: Boutique[];
   onBoutiqueChange: (b: Boutique | null) => void;
   access: BackOfficeAccess | null;
+  accessLoading: boolean;
   getAccessToken: () => string | null;
   onSignOut: () => Promise<void>;
 }) {
+  const waitingForAccess = accessLoading && !userRoles.includes('ROLE_SUPER_ADMIN');
+
   return (
     <>
       <Shell
@@ -245,7 +265,13 @@ function InnerApp({
         onSignOut={onSignOut}
         access={access}
       >
-        {canOpenRoute(pageSlug, userRoles, access) ? resolvePage(pageSlug, { getAccessToken }) : <AccessDeniedPage />}
+        {waitingForAccess ? (
+          <Card><CardBody><LoadingState message="Vérification des accès..." /></CardBody></Card>
+        ) : canOpenRoute(pageSlug, userRoles, access) ? (
+          resolvePage(pageSlug, { getAccessToken, userRoles })
+        ) : (
+          <AccessDeniedPage />
+        )}
       </Shell>
       <ToastContainer />
     </>

@@ -34,9 +34,6 @@ final class BoutiqueSettingsInput
     public ?bool $enableEmailVerification = null;
     public ?bool $enableCustomerEmailVerification = null;
     public ?bool $createAccountAfterOrder = null;
-    public ?bool $enableLoyalty = null;
-    public ?int $loyaltyPointsPerAmount = null;
-    public ?int $loyaltyAmountCents = null;
     public ?string $facebookUrl = null;
     public ?string $instagramUrl = null;
     public ?string $tiktokUrl = null;

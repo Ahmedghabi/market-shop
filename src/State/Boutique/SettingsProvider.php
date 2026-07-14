@@ -96,9 +96,6 @@ final readonly class SettingsProvider implements ProviderInterface
         $output->enableEmailVerification = $settings->isEnableEmailVerification();
         $output->enableCustomerEmailVerification = $settings->isEnableCustomerEmailVerification();
         $output->createAccountAfterOrder = $settings->isCreateAccountAfterOrder();
-        $output->enableLoyalty = $settings->isEnableLoyalty();
-        $output->loyaltyPointsPerAmount = $settings->getLoyaltyPointsPerAmount();
-        $output->loyaltyAmountCents = $settings->getLoyaltyAmountCents();
         $output->facebookUrl = $socialLinks['facebook'] ?? null;
         $output->instagramUrl = $socialLinks['instagram'] ?? null;
         $output->tiktokUrl = $socialLinks['tiktok'] ?? null;

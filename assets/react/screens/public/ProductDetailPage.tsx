@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { appIcons } from '../../icons/fontAwesome';
 import { Badge, Button, Card } from '../../components/ui';
 import { ReviewSection } from '../../components/ReviewSection';
@@ -98,9 +99,13 @@ export function ProductDetailPage({ title }: { title: string }) {
       <section className="ds-page py-8 md:py-12">
         <Card className="overflow-hidden p-0">
           <div className="grid gap-0 lg:grid-cols-2">
-            <div className="bg-[color:var(--ds-surface-container)]">
+            <div className="overflow-hidden bg-[color:var(--ds-surface-container)]">
               {product.images.length > 0 ? (
-                <img
+                <motion.img
+                  initial={{ opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ scale: 1.03 }}
                   src={product.images[0].largeUrl ?? product.images[0].url}
                   alt={product.images[0].alt ?? product.name}
                   className="h-full w-full object-cover max-h-[500px]"
@@ -144,9 +149,22 @@ export function ProductDetailPage({ title }: { title: string }) {
 
               <div className="mt-8 flex items-center gap-4">
                 <div className="flex items-center rounded-xl border border-[color:var(--ds-outline-variant)]">
-                  <button type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-                  <span className="min-w-[3rem] text-center font-semibold">{quantity}</span>
-                  <button type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(quantity + 1)}>+</button>
+                  <motion.button whileTap={{ scale: 0.9 }} type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</motion.button>
+                  <span className="min-w-[3rem] text-center font-semibold overflow-hidden">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={quantity}
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="inline-block"
+                      >
+                        {quantity}
+                      </motion.span>
+                    </AnimatePresence>
+                  </span>
+                  <motion.button whileTap={{ scale: 0.9 }} type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(quantity + 1)}>+</motion.button>
                 </div>
                 <Button variant="primary" className="flex-1" onClick={handleAddToCart}>
                   <FontAwesomeIcon icon={appIcons.products} /> Ajouter au panier

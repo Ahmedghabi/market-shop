@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Card, CardBody, CardHeader } from '../../components/Card';
@@ -6,6 +7,26 @@ import { ErrorState, LoadingState } from '../../components/States';
 import { useApiClient, useApiData } from '../../hooks/useApi';
 import { useBoutique } from '../../hooks/useBoutique';
 import { PageHeader } from '../../layout/Shell';
+
+const gridStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const gridItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
+function WidgetIcon({ tone }: { tone?: 'success' | 'warning' | 'error' | 'neutral' }) {
+  return (
+    <div className={`bo-widget-icon ${tone && tone !== 'neutral' ? `tone-${tone}` : ''}`}>
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    </div>
+  );
+}
 
 type BoutiqueDashboardData = {
   boutiqueId: string;
@@ -364,20 +385,30 @@ export function DashboardPage({ getAccessToken }: { getAccessToken: () => string
         actions={<Button variant="secondary" onClick={refresh}>Actualiser</Button>}
       />
 
-      <section className="bo-widget-grid">
+      <motion.section
+        className="bo-widget-grid"
+        variants={gridStagger}
+        initial="hidden"
+        animate="show"
+      >
         {mainCards.filter((card) => card.visible).map((card) => (
-          <Card key={card.label}>
-            <CardBody>
-              <div className="bo-widget">
-                <div className="bo-widget-info">
-                  <span className="bo-widget-label">{card.label}</span>
-                  <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : undefined }}>{card.value}</strong>
+          <motion.div key={card.label} variants={gridItem}>
+            <Card>
+              <CardBody>
+                <div className="bo-widget">
+                  <div className="bo-widget-header">
+                    <WidgetIcon tone={card.tone as 'error' | 'neutral' | undefined} />
+                  </div>
+                  <div className="bo-widget-info">
+                    <span className="bo-widget-label">{card.label}</span>
+                    <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : undefined }}>{card.value}</strong>
+                  </div>
                 </div>
-              </div>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
+          </motion.div>
         ))}
-      </section>
+      </motion.section>
 
       <section style={{ marginTop: 24 }}>
         <Card>
@@ -474,7 +505,7 @@ function PlatformDashboard({ data, modules, onRefresh }: { data: PlatformDashboa
   const kpis = data.kpis;
   const enabledModules = Object.entries(modules).filter(([, enabled]) => enabled);
   const disabledModules = Object.entries(modules).filter(([, enabled]) => !enabled);
-  const growthTone = kpis.monthlyGrowthPercent === null || kpis.monthlyGrowthPercent >= 0 ? 'success' : 'error';
+  const growthTone: 'success' | 'error' = kpis.monthlyGrowthPercent === null || kpis.monthlyGrowthPercent >= 0 ? 'success' : 'error';
 
   const cards = [
     { label: 'Boutiques', value: kpis.totalBoutiques, hint: `${kpis.activeBoutiques} actives`, tone: 'success' as const },
@@ -495,21 +526,31 @@ function PlatformDashboard({ data, modules, onRefresh }: { data: PlatformDashboa
         actions={<Button variant="secondary" onClick={onRefresh}>Actualiser</Button>}
       />
 
-      <section className="bo-widget-grid">
+      <motion.section
+        className="bo-widget-grid"
+        variants={gridStagger}
+        initial="hidden"
+        animate="show"
+      >
         {cards.map((card) => (
-          <Card key={card.label}>
-            <CardBody>
-              <div className="bo-widget">
-                <div className="bo-widget-info">
-                  <span className="bo-widget-label">{card.label}</span>
-                  <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : card.tone === 'warning' ? 'var(--bo-warning)' : card.tone === 'success' ? 'var(--bo-success)' : undefined }}>{card.value}</strong>
-                  <span style={{ color: 'var(--bo-text-muted)', fontSize: 12 }}>{card.hint}</span>
+          <motion.div key={card.label} variants={gridItem}>
+            <Card>
+              <CardBody>
+                <div className="bo-widget">
+                  <div className="bo-widget-header">
+                    <WidgetIcon tone={card.tone} />
+                  </div>
+                  <div className="bo-widget-info">
+                    <span className="bo-widget-label">{card.label}</span>
+                    <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : card.tone === 'warning' ? 'var(--bo-warning)' : card.tone === 'success' ? 'var(--bo-success)' : undefined }}>{card.value}</strong>
+                    <span style={{ color: 'var(--bo-text-muted)', fontSize: 12 }}>{card.hint}</span>
+                  </div>
                 </div>
-              </div>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
+          </motion.div>
         ))}
-      </section>
+      </motion.section>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 24 }}>
         <Card>

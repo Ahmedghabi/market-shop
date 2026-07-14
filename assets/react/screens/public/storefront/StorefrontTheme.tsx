@@ -1,4 +1,5 @@
 import { type ReactNode, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   Mail,
@@ -13,6 +14,18 @@ import {
 import { CartSheet } from './CartSheet';
 import { boutiqueLink } from '../boutiqueRouting';
 import { type StoreProduct } from './ProductCard';
+
+/** Brand accent used for CTAs/badges — falls back to the editorial black when a boutique has no custom color. */
+const BRAND = 'var(--sf-accent, var(--ds-primary, #111111))';
+const easeBrand = [0.16, 1, 0.3, 1] as const;
+const fadeUp = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeBrand } },
+};
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
 
 export type { StoreProduct } from './ProductCard';
 
@@ -128,10 +141,10 @@ export function StorefrontTheme({
   ];
 
   return (
-    <div className="min-h-screen bg-[#f6f2eb] text-[#171717]">
+    <div className="min-h-screen bg-[color:var(--sf-bg,#f6f2eb)] text-[color:var(--sf-text,#171717)]">
       <TopRibbon boutique={boutique} />
 
-      <header className="sticky top-0 z-30 border-b border-black/10 bg-[#f6f2eb]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-black/10 bg-[color:var(--sf-bg,#f6f2eb)]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <button
             className="rounded-full p-2 text-[#171717] md:hidden"
@@ -183,40 +196,64 @@ export function StorefrontTheme({
         </div>
       </header>
 
-      {mobileMenu && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={() => setMobileMenu(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 bg-[#f6f2eb] px-6 py-8 shadow-2xl">
-            <div className="mb-10 flex items-center justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.28em] text-black/50">Navigation</div>
-                <div className="text-xl font-semibold">{boutique.name}</div>
+      <AnimatePresence>
+        {mobileMenu && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenu(false)}
+            />
+            <motion.div
+              className="fixed inset-y-0 left-0 z-50 w-80 bg-[#f6f2eb] px-6 py-8 shadow-2xl"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+            >
+              <div className="mb-10 flex items-center justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.28em] text-black/50">Navigation</div>
+                  <div className="text-xl font-semibold">{boutique.name}</div>
+                </div>
+                <button className="rounded-full border border-black/10 p-2" onClick={() => setMobileMenu(false)}>
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button className="rounded-full border border-black/10 p-2" onClick={() => setMobileMenu(false)}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <nav className="space-y-4">
-              {navItems.map((item) => (
-                <a key={item.label} href={item.href} className="block text-lg font-medium text-black/80">
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </>
-      )}
+              <nav className="space-y-4">
+                {navItems.map((item) => (
+                  <a key={item.label} href={item.href} className="block text-lg font-medium text-black/80">
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-      {searchOpen && (
-        <SearchOverlay query={searchQuery} onQuery={setSearchQuery} onClose={() => setSearchOpen(false)} />
-      )}
+      <AnimatePresence>
+        {searchOpen && (
+          <SearchOverlay query={searchQuery} onQuery={setSearchQuery} onClose={() => setSearchOpen(false)} />
+        )}
+      </AnimatePresence>
 
       <main>
         <section className="px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-16 lg:pt-8">
-          <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1.35fr)_430px]">
-            <div className="overflow-hidden rounded-[2rem] bg-[#111111] px-8 py-10 text-white sm:px-10 sm:py-12 lg:min-h-[620px] lg:px-14 lg:py-16">
+          <motion.div
+            className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[minmax(0,1.35fr)_430px]"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.div
+              variants={fadeUp}
+              className="overflow-hidden rounded-[2rem] bg-[#111111] px-8 py-10 text-white sm:px-10 sm:py-12 lg:min-h-[620px] lg:px-14 lg:py-16"
+            >
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/70">
-                <Sparkles className="h-3.5 w-3.5" /> Midnight Collection 2026
+                <Sparkles className="h-3.5 w-3.5" style={{ color: BRAND }} /> Midnight Collection 2026
               </div>
 
               <h1 className="mt-8 max-w-3xl text-4xl font-semibold uppercase leading-[0.92] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
@@ -228,22 +265,39 @@ export function StorefrontTheme({
               </p>
 
               <div className="mt-9 flex flex-wrap gap-3">
-                <a href={boutiqueLink('#catalogue')} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#111111] transition hover:bg-white/90">
+                <motion.a
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  href={boutiqueLink('#catalogue')}
+                  className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition"
+                  style={{ backgroundColor: BRAND }}
+                >
                   Explorer la boutique
                   <ArrowRight className="h-4 w-4" />
-                </a>
-                <a href={boutiqueLink('#drops')} className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/8">
+                </motion.a>
+                <motion.a
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  href={boutiqueLink('#drops')}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/8"
+                >
                   Voir les drops
-                </a>
+                </motion.a>
               </div>
-            </div>
+            </motion.div>
 
             <div className="grid gap-4 lg:grid-rows-[1fr_1fr_auto_auto]">
-              {heroCategories.map((category) => (
-                <CategoryAccentCard key={category.name} category={category} />
+              {heroCategories.map((category, i) => (
+                <motion.div key={category.name} variants={fadeUp} custom={i}>
+                  <CategoryAccentCard category={category} />
+                </motion.div>
               ))}
 
-              {featuredProduct && <FeaturedProductPanel product={featuredProduct} onAddToCart={handleAddToCart} />}
+              {featuredProduct && (
+                <motion.div variants={fadeUp}>
+                  <FeaturedProductPanel product={featuredProduct} onAddToCart={handleAddToCart} />
+                </motion.div>
+              )}
 
               <div className="rounded-[1.6rem] border border-black/10 bg-white px-6 py-5">
                 <div className="text-3xl font-semibold tracking-[-0.05em]">24h</div>
@@ -259,13 +313,13 @@ export function StorefrontTheme({
                     placeholder="Votre email"
                     className="min-w-0 flex-1 rounded-full border border-black/10 bg-[#f8f5ef] px-4 py-3 text-sm outline-none"
                   />
-                  <button type="submit" className="rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white">
+                  <button type="submit" className="rounded-full px-5 py-3 text-sm font-semibold text-white" style={{ backgroundColor: BRAND }}>
                     Rejoindre
                   </button>
                 </form>
               </div>
             </div>
-          </div>
+          </motion.div>
         </section>
 
         <FeatureTicker />
@@ -276,10 +330,18 @@ export function StorefrontTheme({
               <div className="text-xs uppercase tracking-[0.25em] text-black/45">Explorer</div>
               <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Nos univers</h2>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+            <motion.div
+              className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5"
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+            >
               {collectionCategories.map((category) => (
-                <a
+                <motion.a
                   key={category.name}
+                  variants={fadeUp}
+                  whileHover={{ y: -4 }}
                   href={boutiqueLink('#catalogue')}
                   className="group overflow-hidden rounded-[1.8rem] border border-black/10 bg-white"
                 >
@@ -297,20 +359,28 @@ export function StorefrontTheme({
                     </div>
                     <ArrowRight className="h-4 w-4 text-black/40 transition group-hover:translate-x-1 group-hover:text-black" />
                   </div>
-                </a>
+                </motion.a>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
         <section id="catalogue" className="px-4 py-14 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <SectionHeading eyebrow="Just dropped" title="Nouveautes" href={boutiqueLink('#catalogue')} />
-            <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <motion.div
+              className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4"
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+            >
               {newArrivals.map((product) => (
-                <ProductEditorialCard key={product.id} product={product} onAddToCart={handleAddToCart} />
+                <motion.div key={product.id} variants={fadeUp}>
+                  <ProductEditorialCard product={product} onAddToCart={handleAddToCart} />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -325,10 +395,15 @@ export function StorefrontTheme({
                 <p className="mt-3 max-w-xl text-sm leading-7 text-white/70">
                   Pieces fortes, paniers soignes et une direction visuelle proche du template Nordic que vous avez envoye.
                 </p>
-                <a href={boutiqueLink('#catalogue')} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#111111]">
+                <motion.a
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  href={boutiqueLink('#catalogue')}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#111111]"
+                >
                   J&apos;en profite
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </motion.a>
               </div>
 
               <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white">
@@ -343,9 +418,15 @@ export function StorefrontTheme({
                   <div className="text-xs uppercase tracking-[0.22em] text-black/45">Coup de coeur</div>
                   <div className="mt-2 text-xl font-semibold">{spotlightProduct.name}</div>
                   <div className="mt-3 text-sm text-black/55">{formatPrice(spotlightProduct)}</div>
-                  <button onClick={() => handleAddToCart(spotlightProduct)} className="mt-4 rounded-full bg-[#111111] px-5 py-3 text-sm font-semibold text-white">
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => handleAddToCart(spotlightProduct)}
+                    className="mt-4 rounded-full px-5 py-3 text-sm font-semibold text-white"
+                    style={{ backgroundColor: BRAND }}
+                  >
                     Ajouter au panier
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -355,11 +436,19 @@ export function StorefrontTheme({
         <section className="px-4 py-14 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <SectionHeading eyebrow="Community picks" title="Best-sellers" href={boutiqueLink('#catalogue')} />
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <motion.div
+              className="mt-8 grid gap-6 md:grid-cols-2"
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: '-80px' }}
+            >
               {bestSellers.map((product) => (
-                <ProductEditorialCard key={product.id} product={product} onAddToCart={handleAddToCart} compact />
+                <motion.div key={product.id} variants={fadeUp}>
+                  <ProductEditorialCard product={product} onAddToCart={handleAddToCart} compact />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -482,16 +571,21 @@ function FeaturedProductPanel({ product, onAddToCart }: { product: StoreProduct;
         )}
       </div>
       <div className="px-6 py-5">
-        <div className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+        <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white" style={{ backgroundColor: BRAND }}>
           Featured
         </div>
         <div className="mt-3 text-xl font-semibold tracking-tight">{product.name}</div>
         <p className="mt-2 text-sm leading-6 text-black/58">{product.description || 'Piece phare de la collection, selectionnee pour incarner le template de reference.'}</p>
         <div className="mt-4 flex items-center justify-between gap-4">
           <div className="text-lg font-semibold">{formatPrice(product)}</div>
-          <button onClick={() => onAddToCart(product)} className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold transition hover:bg-[#111111] hover:text-white">
+          <motion.button
+            whileHover={{ y: -2, backgroundColor: BRAND, color: '#ffffff', borderColor: BRAND }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => onAddToCart(product)}
+            className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-[#111111]"
+          >
             Ajouter au panier
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>
@@ -544,14 +638,21 @@ function ProductEditorialCard({
   const image = getProductImage(product);
 
   return (
-    <div className="group overflow-hidden rounded-[1.7rem] border border-black/10 bg-white">
+    <motion.div
+      whileHover={{ y: -6 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+      className="group overflow-hidden rounded-[1.7rem] border border-black/10 bg-white"
+    >
       <a href={boutiqueLink(`/products/${product.slug}`)} className={`relative block overflow-hidden bg-[#e7e0d6] ${compact ? 'aspect-[1.2]' : 'aspect-[0.95]'}`}>
         {image ? (
           <img src={image} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-black/45">Produit</div>
         )}
-        <div className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#111111] shadow-sm">
+        <div
+          className="absolute left-4 top-4 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm"
+          style={badge === 'Promo' ? { backgroundColor: '#dc2626', color: '#fff' } : { backgroundColor: BRAND, color: '#fff' }}
+        >
           {badge}
         </div>
         <button
@@ -559,7 +660,8 @@ function ProductEditorialCard({
             event.preventDefault();
             onAddToCart(product);
           }}
-          className="absolute bottom-4 right-4 rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100"
+          className="absolute bottom-4 right-4 rounded-full px-4 py-2 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100"
+          style={{ backgroundColor: BRAND }}
         >
           Ajouter
         </button>
@@ -577,7 +679,7 @@ function ProductEditorialCard({
           {product.rating ? <span>★ {product.rating.toFixed(1)}</span> : null}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -618,8 +720,19 @@ function SearchOverlay({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-[#111111]/40 backdrop-blur-md">
-      <div className="mx-auto mt-12 max-w-3xl rounded-[2rem] bg-[#f6f2eb] p-6 shadow-2xl sm:mt-20">
+    <motion.div
+      className="fixed inset-0 z-50 bg-[#111111]/40 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="mx-auto mt-12 max-w-3xl rounded-[2rem] bg-[#f6f2eb] p-6 shadow-2xl sm:mt-20"
+        initial={{ opacity: 0, y: -16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+      >
         <div className="flex items-center gap-4 rounded-full border border-black/10 bg-white px-5 py-4">
           <Search className="h-5 w-5 text-black/45" />
           <input
@@ -633,8 +746,8 @@ function SearchOverlay({
             <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

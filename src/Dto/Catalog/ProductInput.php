@@ -83,7 +83,7 @@ final class ProductInput
 
     public ?string $brandId = null;
 
-    public string $currency = 'EUR';
+    public string $currency = 'TND';
 
     public ?string $categoryId = null;
 

@@ -139,7 +139,7 @@ export function SuperAdminPage({ getAccessToken }: { getAccessToken: () => strin
     } catch { showNotice('Erreur lors du traitement de la demande', 'error'); }
   };
 
-  const centsToEur = (c: number) => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+  const centsToTnd = (c: number) => (c / 100).toLocaleString('fr-TN', { style: 'currency', currency: 'TND' });
 
   /* Filter visible boutiques by search */
   const [search, setSearch] = useState('');
@@ -269,7 +269,7 @@ export function SuperAdminPage({ getAccessToken }: { getAccessToken: () => strin
               <Card><CardBody>
                 <div className="bo-widget"><SvgIcon path={MODULE_INFO.facturation.icon} color={MODULE_INFO.facturation.color} />
                   <div className="bo-widget-info"><span className="bo-widget-label">Revenu mois</span>
-                    <strong className="bo-widget-value" style={{ fontSize: 15 }}>{centsToEur(kpis.platformRevenueCents)}</strong>
+                    <strong className="bo-widget-value" style={{ fontSize: 15 }}>{centsToTnd(kpis.platformRevenueCents)}</strong>
                   </div>
                   {kpis.monthlyGrowthPercent !== null && (
                     <div className="bo-widget-change">
@@ -344,7 +344,7 @@ export function SuperAdminPage({ getAccessToken }: { getAccessToken: () => strin
                 <StatRow label="Actifs" value={plat?.subscriptions.active ?? '-'} color="var(--bo-success)" />
                 <StatRow label="Expirent bientôt" value={plat?.subscriptions.expiringSoon ?? '-'} color="var(--bo-warning)" />
                 <StatRow label="Expirés" value={plat?.subscriptions.expired ?? '-'} color="var(--bo-error)" />
-                <StatRow label="Revenu total" value={centsToEur(kpis?.platformRevenueCents ?? 0)} />
+                <StatRow label="Revenu total" value={centsToTnd(kpis?.platformRevenueCents ?? 0)} />
               </CardBody>
             </Card>
 
@@ -380,7 +380,7 @@ export function SuperAdminPage({ getAccessToken }: { getAccessToken: () => strin
                 <CardBody>
                   <StatRow label="Validés" value={'-'} color="var(--bo-success)" />
                   <StatRow label="Refusés" value={0} color="var(--bo-error)" />
-                  <StatRow label="Revenus" value={centsToEur(kpis?.platformRevenueCents ?? 0)} />
+                  <StatRow label="Revenus" value={centsToTnd(kpis?.platformRevenueCents ?? 0)} />
                 </CardBody>
               </Card>
             )}
@@ -512,7 +512,7 @@ export function SuperAdminPage({ getAccessToken }: { getAccessToken: () => strin
                       <span className="bo-table-cell-text" style={{ fontWeight: 700, color: 'var(--bo-text-muted)', width: 24 }}>#{i + 1}</span>
                       <div style={{ flex: 1 }}><strong>{tb.name}</strong></div>
                       <span style={{ color: 'var(--bo-text-muted)', fontSize: 13 }}>{tb.orders} commandes</span>
-                      <strong style={{ fontSize: 14 }}>{centsToEur(tb.revenueCents)}</strong>
+                      <strong style={{ fontSize: 14 }}>{centsToTnd(tb.revenueCents)}</strong>
                     </div>
                   ))}
                 </div>
@@ -662,7 +662,7 @@ export function SuperAdminPage({ getAccessToken }: { getAccessToken: () => strin
                   <StatBox label="Croissance boutiques" value={kpis?.newBoutiques ?? '-'} />
                   <StatBox label="Croissance revenus" value={kpis?.monthlyGrowthPercent != null ? `${kpis.monthlyGrowthPercent >= 0 ? '+' : ''}${kpis.monthlyGrowthPercent}%` : '—'} />
                   {isOn('commandes') && <StatBox label="Croissance commandes" value={'-'} />}
-                  <StatBox label="Revenu total" value={centsToEur(kpis?.platformRevenueCents ?? 0)} />
+                  <StatBox label="Revenu total" value={centsToTnd(kpis?.platformRevenueCents ?? 0)} />
                 </div>
               </CardBody>
             </Card>

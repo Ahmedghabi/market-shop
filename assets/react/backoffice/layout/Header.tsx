@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { BackOfficeAccess, Boutique, BellNotification } from '../types';
 import { frontOfficeUrl } from '../utils/frontOfficeUrl';
+
+const dropdownMotion = {
+  initial: { opacity: 0, scale: 0.96, y: -6 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.97, y: -4 },
+  transition: { type: 'spring' as const, stiffness: 480, damping: 34 },
+};
 
 function UserAvatar({ name }: { name: string }) {
   const initials = name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
@@ -15,6 +23,7 @@ export function Header({
   onBoutiqueChange,
   onSignOut,
   access,
+  onMenuToggle,
 }: {
   userEmail: string;
   userRoles: string[];
@@ -23,6 +32,7 @@ export function Header({
   onBoutiqueChange: (b: Boutique | null) => void;
   onSignOut: () => void;
   access?: BackOfficeAccess | null;
+  onMenuToggle?: () => void;
 }) {
   const [boutiqueOpen, setBoutiqueOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -62,6 +72,11 @@ export function Header({
   return (
     <header className="bo-header">
       <div className="bo-header-left">
+        <button className="bo-menu-toggle" onClick={onMenuToggle} aria-label="Ouvrir le menu">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
         <div className="bo-search">
           <svg className="bo-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -83,8 +98,9 @@ export function Header({
             </svg>
             <span>{boutique?.name ?? 'Toutes les boutiques'}</span>
           </button>
+          <AnimatePresence>
           {boutiqueOpen && (
-            <div className="bo-boutique-dropdown">
+            <motion.div className="bo-boutique-dropdown" {...dropdownMotion}>
               {isSuperAdmin && (
                 <div className={`bo-boutique-option ${boutique === null ? 'active' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
@@ -129,8 +145,9 @@ export function Header({
                   Aucune boutique disponible
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         <div ref={notifRef} className="bo-notif-dropdown">
@@ -142,8 +159,9 @@ export function Header({
               <span className="bo-notif-badge">{visibleNotifications.filter(n => !n.read).length}</span>
             )}
           </button>
+          <AnimatePresence>
           {notifOpen && (
-            <div className="bo-notif-panel">
+            <motion.div className="bo-notif-panel" {...dropdownMotion}>
               <div className="bo-notif-header">
                 <strong>Notifications</strong>
                 {visibleNotifications.some(n => !n.read) && (
@@ -171,8 +189,9 @@ export function Header({
               <a href="/backoffice/notifications" className="bo-notif-footer">
                 Voir toutes les notifications
               </a>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         <div ref={userRef} className="bo-user-menu">
@@ -183,8 +202,9 @@ export function Header({
               <span>{userEmail}</span>
             </div>
           </button>
+          <AnimatePresence>
           {userOpen && (
-            <div className="bo-user-dropdown">
+            <motion.div className="bo-user-dropdown" {...dropdownMotion}>
               <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--bo-border-light)' }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{userEmail}</div>
                 <div style={{ fontSize: 11, color: 'var(--bo-text-muted)', marginTop: 4 }}>
@@ -204,8 +224,9 @@ export function Header({
                 </svg>
                 Déconnexion
               </button>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
       </div>
     </header>

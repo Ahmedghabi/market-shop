@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { appIcons } from '../../icons/fontAwesome';
 import { Badge, Button, Card } from '../../components/ui';
 import { authHeaders, resolveBoutiqueSlug } from './boutiqueRouting';
@@ -51,7 +52,7 @@ export function CartPage() {
   }, [boutiqueSlug]);
 
   const items = cart?.items ?? [];
-  const currency = cart?.currency ?? 'EUR';
+  const currency = cart?.currency ?? 'TND';
   const total = ((cart?.totalCents ?? 0) / 100).toFixed(2);
 
   return (
@@ -68,8 +69,14 @@ export function CartPage() {
             </div>
 
             <div className="space-y-4">
-              {items.length > 0 ? items.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 rounded-2xl border border-[color:var(--ds-outline-variant)] bg-white p-4">
+              {items.length > 0 ? items.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  className="flex items-center gap-4 rounded-2xl border border-[color:var(--ds-outline-variant)] bg-white p-4"
+                >
                   <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-[color:var(--ds-surface-container-low)] text-[color:var(--ds-primary)]">
                     <FontAwesomeIcon icon={appIcons.products} />
                   </div>
@@ -81,7 +88,7 @@ export function CartPage() {
                     <strong>{(item.totalCents / 100).toFixed(2)} {currency}</strong>
                     <p className="text-sm text-[color:var(--ds-on-surface-variant)]">Sous-total</p>
                   </div>
-                </div>
+                </motion.div>
               )) : (
                 <div className="rounded-2xl border border-dashed border-[color:var(--ds-outline-variant)] bg-white p-8 text-center text-[color:var(--ds-on-surface-variant)]">
                   Votre panier boutique est vide.

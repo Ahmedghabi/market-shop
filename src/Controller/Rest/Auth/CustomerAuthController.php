@@ -222,7 +222,6 @@ final class CustomerAuthController
                 'firstName' => $customer->getFirstName(),
                 'lastName' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
-                'loyaltyPoints' => $customer->getLoyaltyPoints(),
                 'boutique' => [
                     'id' => (string) $boutique->getId(),
                     'name' => $boutique->getName(),
@@ -244,7 +243,6 @@ final class CustomerAuthController
                 'firstName' => $customer->getFirstName(),
                 'lastName' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
-                'loyaltyPoints' => $customer->getLoyaltyPoints(),
                 'boutique' => [
                     'id' => (string) $boutique->getId(),
                     'name' => $boutique->getName(),

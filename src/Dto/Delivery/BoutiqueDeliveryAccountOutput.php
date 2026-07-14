@@ -11,5 +11,10 @@ final class BoutiqueDeliveryAccountOutput
     public ?string $verifiedAt;
     public ?string $lastError;
     public bool $isActive;
+    public bool $isDefault;
+    public bool $hasApiKey;
+    public bool $hasToken;
+    public bool $hasSecret;
+    public ?string $customBaseUrl;
     public string $createdAt;
 }

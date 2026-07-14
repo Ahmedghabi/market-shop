@@ -303,7 +303,7 @@ export function CheckoutPage() {
     [localities, form.localityId],
   );
   const subtotal = ((cart?.totalCents ?? 0) / 100).toFixed(2);
-  const currency = cart?.currency ?? 'EUR';
+  const currency = cart?.currency ?? 'TND';
 
   const isAddressReady = Boolean(form.addressLine && form.countryId && form.governorateId && form.localityId);
 
@@ -350,7 +350,7 @@ export function CheckoutPage() {
         orderId: payload?.orderId || '',
         status: payload?.status || 'pending',
         totalCents: payload?.totalCents || cart?.totalCents || 0,
-        currency: payload?.currency || cart?.currency || 'EUR',
+        currency: payload?.currency || cart?.currency || 'TND',
         customerName: `${form.firstName} ${form.lastName}`.trim(),
       }));
       window.location.href = `/order-confirmation?orderId=${encodeURIComponent(payload?.orderId || '')}`;

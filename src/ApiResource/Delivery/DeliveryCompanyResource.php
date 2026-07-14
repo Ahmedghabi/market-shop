@@ -22,8 +22,15 @@ use App\State\Delivery\DeliveryCompanyProvider;
             output: DeliveryCompanyOutput::class,
             provider: DeliveryCompanyProvider::class,
         ),
+        new GetCollection(
+            name: 'admin_list_delivery_companies',
+            uriTemplate: '/admin/delivery-companies',
+            security: "is_granted('ROLE_SUPER_ADMIN')",
+            output: DeliveryCompanyOutput::class,
+            provider: DeliveryCompanyProvider::class,
+        ),
         new Post(
-            uriTemplate: '/delivery/companies',
+            uriTemplate: '/admin/delivery-companies',
             security: "is_granted('ROLE_SUPER_ADMIN')",
             input: DeliveryCompanyInput::class,
             output: DeliveryCompanyOutput::class,
@@ -36,14 +43,14 @@ use App\State\Delivery\DeliveryCompanyProvider;
             provider: DeliveryCompanyProvider::class,
         ),
         new Patch(
-            uriTemplate: '/delivery/companies/{id}',
+            uriTemplate: '/admin/delivery-companies/{id}',
             security: "is_granted('ROLE_SUPER_ADMIN')",
             input: DeliveryCompanyInput::class,
             output: DeliveryCompanyOutput::class,
             processor: DeliveryCompanyProcessor::class,
         ),
         new Delete(
-            uriTemplate: '/delivery/companies/{id}',
+            uriTemplate: '/admin/delivery-companies/{id}',
             security: "is_granted('ROLE_SUPER_ADMIN')",
             processor: DeliveryCompanyProcessor::class,
         ),
@@ -55,9 +62,12 @@ final class DeliveryCompanyResource
     public ?string $name = null;
     public ?string $slug = null;
     public ?string $baseUrl = null;
-    public ?string $authEndpoint = null;
-    public ?string $submitOrderEndpoint = null;
-    public ?string $trackEndpoint = null;
+    public ?string $provider = null;
+    public ?string $authType = null;
+    public array $authConfig = [];
+    public array $mappingConfig = [];
+    public array $parametersConfig = [];
+    public ?string $logoUrl = null;
     public ?string $description = null;
     public bool $isActive = true;
 }

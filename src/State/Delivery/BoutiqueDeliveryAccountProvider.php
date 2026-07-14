@@ -55,6 +55,11 @@ final class BoutiqueDeliveryAccountProvider implements ProviderInterface
         $output->verifiedAt = $entity->getVerifiedAt()?->format('c');
         $output->lastError = $entity->getLastError();
         $output->isActive = $entity->isActive();
+        $output->isDefault = $entity->isDefault();
+        $output->hasApiKey = null !== $entity->getEncryptedApiKey();
+        $output->hasToken = null !== $entity->getEncryptedToken();
+        $output->hasSecret = null !== $entity->getEncryptedSecret();
+        $output->customBaseUrl = $entity->getCustomBaseUrl();
         $output->createdAt = $entity->getCreatedAt()->format('c');
 
         return $output;

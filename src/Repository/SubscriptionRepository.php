@@ -42,4 +42,25 @@ final class SubscriptionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function countByStatus(SubscriptionStatus $status): int
+    {
+        return $this->count(['status' => $status]);
+    }
+
+    /**
+     * Approximate recurring revenue: sum of the plan price for every currently active subscription.
+     */
+    public function sumActiveRevenue(): int
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->select('SUM(p.priceTnd) AS total')
+            ->join('s.subscriptionPlan', 'p')
+            ->andWhere('s.status = :status')
+            ->setParameter('status', SubscriptionStatus::Active);
+
+        $result = $qb->getQuery()->getSingleScalarResult();
+
+        return null === $result ? 0 : (int) $result;
+    }
 }

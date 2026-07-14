@@ -15,6 +15,10 @@ services:
             'bool $globalEnabled': '%chatbot.global_enabled%'
             'array $modules': '%modules%'
 
+    _instanceof:
+        App\Service\Delivery\Connector\DeliveryProviderInterface:
+            tags: ['app.delivery.connector']
+
     App\:
         resource: '../src/'
         exclude:

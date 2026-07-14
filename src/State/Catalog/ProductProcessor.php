@@ -28,9 +28,11 @@ use App\Repository\ProductRepository;
 use App\Security\BoutiqueContext;
 use App\Service\FrontOfficeCacheService;
 use App\Service\SeoService;
+use App\Service\Subscription\SubscriptionManager;
 use App\State\Common\BoutiqueWriteResolverTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /** @implements ProcessorInterface<ProductInput, ProductOutput|null> */
@@ -49,6 +51,7 @@ final readonly class ProductProcessor implements ProcessorInterface
         private ProductProvider $provider,
         private SeoService $seo,
         private FrontOfficeCacheService $cache,
+        private SubscriptionManager $subscriptionManager,
     ) {
     }
 
@@ -93,6 +96,10 @@ final readonly class ProductProcessor implements ProcessorInterface
         $product = isset($uriVariables['id']) ? $this->products->find((string) $uriVariables['id']) : null;
 
         if (!$product instanceof Product) {
+            if (!$this->subscriptionManager->canCreateProduct($boutique)) {
+                throw new BadRequestHttpException('Quota produits atteint ou abonnement inactif. Souscrivez à une extension ou changez de plan.');
+            }
+
             $product = new Product(
                 boutique: $boutique,
                 name: $data->name,

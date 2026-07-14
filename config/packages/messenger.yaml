@@ -8,3 +8,5 @@ framework:
             App\Message\DispatchNotificationMessage: async
             App\Message\DispatchWebhookEventMessage: async
             App\Message\ChatbotQueryMessage: async
+            App\Message\CreateShipmentMessage: async
+            App\Message\SyncShipmentTrackingMessage: async

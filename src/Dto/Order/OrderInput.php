@@ -18,7 +18,7 @@ final class OrderInput
     #[Assert\PositiveOrZero]
     public int $discountCents = 0;
 
-    public string $currency = 'EUR';
+    public string $currency = 'TND';
 
     /** @var list<OrderItemInput> */
     #[Assert\Valid]

@@ -15,10 +15,10 @@ export function HomePage({ canAccessBackOffice }: { canAccessBackOffice: boolean
     { initial: 'B', name: 'Beauty Stock', category: 'Beauté', rating: 4, reviews: '74 personnes ont noté', href: '/boutiques/beauty-stock' },
   ];
   const products = [
-    { shop: "L'Atelier Cuir", name: 'Sac en cuir tannage végétal', price: '189,00 €', icon: 'shopping_bag', badge: 'Nouveau' },
-    { shop: 'TechDirect B2B', name: 'Casque sans fil Pro X2', price: '249,00 €', icon: 'headphones', badge: 'Nouveau' },
-    { shop: 'Gourmet Select', name: "Coffret huile d'olive AOP", price: '62,00 €', icon: 'restaurant', badge: 'Édition limitée' },
-    { shop: 'Design & Co', name: 'Lampe sculpturale chêne', price: '320,00 €', icon: 'lightbulb', badge: 'Nouveau' },
+    { shop: "L'Atelier Cuir", name: 'Sac en cuir tannage végétal', price: '189,00 DT', icon: 'shopping_bag', badge: 'Nouveau' },
+    { shop: 'TechDirect B2B', name: 'Casque sans fil Pro X2', price: '249,00 DT', icon: 'headphones', badge: 'Nouveau' },
+    { shop: 'Gourmet Select', name: "Coffret huile d'olive AOP", price: '62,00 DT', icon: 'restaurant', badge: 'Édition limitée' },
+    { shop: 'Design & Co', name: 'Lampe sculpturale chêne', price: '320,00 DT', icon: 'lightbulb', badge: 'Nouveau' },
   ];
   const reviews = [
     { initial: 'M', name: 'Meriem A.', role: 'Boutique indépendante', date: 'il y a 2 jours', rating: 5, text: 'Hanooty nous a donné une présence professionnelle claire et un back-office beaucoup plus simple à gérer.', verified: true },
