@@ -34,7 +34,7 @@ final readonly class CategoryProvider implements ProviderInterface
             }
 
             if ($operation instanceof Get) {
-                $category = $this->categories->find((string) ($uriVariables['id'] ?? ''));
+                $category = $this->categories->findBySlugOrId((string) ($uriVariables['id'] ?? ''));
 
                 return $category instanceof Category ? $this->toOutput($category) : null;
             }
@@ -46,9 +46,9 @@ final readonly class CategoryProvider implements ProviderInterface
         }
 
         if ($operation instanceof Get) {
-            $category = $this->categories->find((string) ($uriVariables['id'] ?? ''));
+            $category = $this->categories->findBySlugOrId((string) ($uriVariables['id'] ?? ''), $boutique);
 
-            return $category instanceof Category && (string) $category->getBoutique()->getId() === (string) $boutique->getId()
+            return $category instanceof Category
                 ? $this->toOutput($category)
                 : null;
         }

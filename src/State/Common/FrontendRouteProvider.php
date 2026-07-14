@@ -30,7 +30,7 @@ final class FrontendRouteProvider implements ProviderInterface
     private function routes(): array
     {
         $definitions = [
-            ['home', 'Accueil Hanooty', '/', 'Public', 'Page publique avec toutes les boutiques et les vitrines actives.'],
+            ['home', 'Accueil Hanooti', '/', 'Public', 'Page publique avec toutes les boutiques et les vitrines actives.'],
             ['boutiques', 'Toutes les boutiques', '/boutiques', 'Public', 'Marketplace publique pour découvrir les boutiques locales.'],
             ['boutique-luxe-paris', 'Luxe Paris', '/boutiques/luxe-paris', 'Public', 'Front-office client de la boutique Luxe Paris.'],
             ['robe-de-soiree', 'Robe de Soirée', '/products/robe-de-soiree', 'Public', 'Fiche produit publique avec galerie, prix et disponibilité.'],

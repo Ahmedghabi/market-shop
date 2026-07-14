@@ -21,11 +21,21 @@ final class UserShopProvider implements ProviderInterface
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array|UserShopOutput|null
     {
         if ($this->boutiqueContext->isSuperAdmin() && '/admin/boutique-admins' === $operation->getUriTemplate()) {
+            $filters = $context['filters'] ?? [];
+            $boutiqueId = is_array($filters) ? ($filters['boutiqueId'] ?? null) : null;
+            if (is_string($boutiqueId) && '' !== $boutiqueId) {
+                return array_map([$this, 'toOutput'], $this->repository->findByRoleAndBoutique('ROLE_BOUTIQUE_ADMIN', $boutiqueId));
+            }
+
             return array_map([$this, 'toOutput'], $this->repository->findByRole('ROLE_BOUTIQUE_ADMIN'));
         }
 
         if (isset($uriVariables['id'])) {
             $entity = $this->repository->find($uriVariables['id']);
+
+            if ($entity instanceof UserShop && !$this->boutiqueContext->canAccessBoutique($entity->getBoutique())) {
+                return null;
+            }
 
             return $entity ? $this->toOutput($entity) : null;
         }

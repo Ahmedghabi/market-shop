@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\AutoEncoder;
 use Intervention\Image\ImageManager;
 
 final class ImageService
@@ -10,12 +12,11 @@ final class ImageService
     private const int SMALL_MAX = 300;
     private const int LARGE_MAX = 1920;
 
-    private readonly ImageManager $manager;
+    private ?ImageManager $manager = null;
 
     public function __construct(
         private readonly string $uploadDir,
     ) {
-        $this->manager = new ImageManager('gd');
     }
 
     public function uploadAndResize(\SplFileInfo $file, string $subDir = 'products'): array
@@ -33,7 +34,7 @@ final class ImageService
         $smallPath = sprintf('%s/small_%s', $absoluteDir, $filename);
         $largePath = sprintf('%s/large_%s', $absoluteDir, $filename);
 
-        $image = $this->manager->read($file->getPathname());
+        $image = $this->getManager()->read($file->getPathname());
 
         $image->save($originalPath);
 
@@ -69,5 +70,14 @@ final class ImageService
         return [
             'url' => sprintf('/%s/%s', $relativeDir, $filename),
         ];
+    }
+
+    private function getManager(): ImageManager
+    {
+        if (!$this->manager instanceof ImageManager) {
+            $this->manager = new ImageManager(new Driver());
+        }
+
+        return $this->manager;
     }
 }

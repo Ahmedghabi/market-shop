@@ -6,6 +6,7 @@ enum LoyaltyTransactionType: string
 {
     case Earn = 'earn';
     case Redeem = 'redeem';
-    case Adjustment = 'adjustment';
     case Expiration = 'expiration';
+    case Cancellation = 'cancellation';
+    case Correction = 'correction';
 }

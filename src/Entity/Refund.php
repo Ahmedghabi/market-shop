@@ -35,7 +35,7 @@ class Refund extends AbstractEntity
         #[ORM\Column(length: 32, enumType: RefundStatus::class)]
         private RefundStatus $status = RefundStatus::Pending,
         #[ORM\Column(length: 3)]
-        private string $currency,
+        private string $currency = 'TND',
         #[ORM\Column]
         private int $subtotalCents = 0,
         #[ORM\Column]

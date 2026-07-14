@@ -34,6 +34,7 @@ final class CouponRepository extends ServiceEntityRepository
             ->andWhere('c.boutique = :boutiqueId')
             ->andWhere('c.deletedAt IS NULL')
             ->orderBy('c.createdAt', 'DESC')
+            ->setParameter('boutiqueId', $boutiqueId)
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->getQuery()

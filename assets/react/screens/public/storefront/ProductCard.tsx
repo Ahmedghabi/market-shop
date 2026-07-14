@@ -1,5 +1,6 @@
 import { ShoppingCart } from 'lucide-react';
 import { boutiqueLink } from '../boutiqueRouting';
+import { ImageWithFallback } from '../../../components/ImageWithFallback';
 
 export type StoreProduct = {
   id: string;
@@ -11,11 +12,25 @@ export type StoreProduct = {
   description?: string | null;
   images?: Array<{ url: string; alt?: string | null }> | string[];
   categoryName?: string | null;
+  categorySlug?: string | null;
+  categoryId?: string | null;
+  categoryIds?: string[];
+  brandName?: string | null;
+  filterValues?: Array<{ filterId: string; filterName: string; filterSlug: string; value: string }>;
   stockQuantity?: number;
   badge?: string | null;
   rating?: number;
   reviewsCount?: number;
+  createdAt?: string | null;
 };
+
+export function getProductImageUrl(product: StoreProduct): string {
+  if (!Array.isArray(product.images) || !product.images[0]) return '';
+
+  const [firstImage] = product.images;
+
+  return typeof firstImage === 'string' ? firstImage : firstImage.url;
+}
 
 export function ProductCard({
   product,
@@ -24,48 +39,45 @@ export function ProductCard({
   product: StoreProduct;
   onAddToCart: (p: StoreProduct) => void;
 }) {
-  const imgUrl = Array.isArray(product.images)
-    ? typeof product.images[0] === 'string'
-      ? product.images[0]
-      : (product.images[0] as any)?.url ?? ''
-    : '';
+  const imgUrl = getProductImageUrl(product);
   const price = (product.priceCents / 100).toFixed(2);
   const oldPrice = product.comparePriceCents ? (product.comparePriceCents / 100).toFixed(2) : null;
   const isLowStock = product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 5;
 
   return (
     <div className="group">
-      <a
-        href={boutiqueLink(`/products/${product.slug}`)}
-        className="relative block aspect-square overflow-hidden rounded-xl bg-[color:var(--ds-surface-container)]"
-      >
-        {imgUrl ? (
-          <img src={imgUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-[color:var(--ds-on-surface-variant)] text-sm">Pas d'image</div>
-        )}
-        {product.badge && (
-          <span className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${
-            product.badge === 'Promo' ? 'bg-red-600' :
-            product.badge === 'Nouveau' ? 'bg-[color:var(--ds-primary)]' :
-            'bg-gray-900'
-          }`}>
-            {product.badge}
-          </span>
-        )}
-        {isLowStock && (
-          <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-            Plus que {product.stockQuantity}
-          </span>
-        )}
+      <div className="relative aspect-square overflow-hidden rounded-xl bg-[color:var(--ds-surface-container)]">
+        <a href={boutiqueLink(`/products/${product.slug}`)} className="block h-full">
+          {imgUrl ? (
+            <ImageWithFallback src={imgUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-[color:var(--ds-on-surface-variant)] text-sm">Pas d'image</div>
+          )}
+          {product.badge && (
+            <span className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${
+              product.badge === 'Promo' ? 'bg-red-600' :
+              product.badge === 'Nouveau' ? 'bg-[color:var(--ds-primary)]' :
+              'bg-gray-900'
+            }`}>
+              {product.badge}
+            </span>
+          )}
+          {isLowStock && (
+            <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              Plus que {product.stockQuantity}
+            </span>
+          )}
+        </a>
         <button
+          type="button"
+          aria-label={`Ajouter ${product.name} au panier`}
           onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-          className="absolute bottom-3 left-3 right-3 translate-y-2 rounded-lg bg-[color:var(--ds-on-surface)] px-3 py-2 text-sm font-medium text-[color:var(--ds-surface)] opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100 flex items-center justify-center gap-2"
+          className="absolute bottom-3 left-3 right-3 rounded-lg bg-[color:var(--ds-on-surface)] px-3 py-2 text-sm font-medium text-[color:var(--ds-surface)] opacity-100 transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--ds-primary)] flex items-center justify-center gap-2"
         >
           <ShoppingCart className="h-4 w-4" />
           Ajouter au panier
         </button>
-      </a>
+      </div>
       <div className="mt-3 space-y-1">
         <div className="text-xs text-[color:var(--ds-on-surface-variant)]">{product.categoryName || 'Catégorie'}</div>
         <a

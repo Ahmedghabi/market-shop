@@ -1,11 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useApiClient, useApiData } from '../../hooks/useApi';
 import { Badge } from '../../components/Badge';
+import { Button } from '../../components/Button';
 import { Card, CardBody, CardHeader } from '../../components/Card';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
 import { FiltersBar } from '../../components/FiltersBar';
 import { Table } from '../../components/Table';
 import { PageHeader } from '../../layout/Shell';
+import { useNotification } from '../../hooks/useNotification';
+import { useBoutique } from '../../hooks/useBoutique';
 
 type BoutiqueAdmin = {
   id: string;
@@ -36,26 +39,43 @@ function statusTone(status: string): 'success' | 'warning' | 'error' | 'neutral'
 
 export function BoutiqueAdminsPage({ getAccessToken }: { getAccessToken: () => string | null }) {
   const api = useApiClient(getAccessToken);
+  const { showNotice } = useNotification();
+  const { boutique } = useBoutique();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchAdmins = useCallback(() => api.getCollection<BoutiqueAdmin>('/admin/boutique-admins'), [api]);
-  const { data, isLoading, error, refresh } = useApiData(fetchAdmins);
+  const { data, isLoading, error, refresh } = useApiData(fetchAdmins, [boutique?.id]);
   const admins = data?.member ?? [];
+
+  async function updateAdminStatus(admin: BoutiqueAdmin, action: 'activate' | 'suspend') {
+    setProcessingId(admin.id);
+    try {
+      await api.post(`/admin/users/${admin.userId}/${action}`, {});
+      showNotice(action === 'activate' ? 'Administrateur activé.' : 'Administrateur désactivé.', 'success');
+      refresh();
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : 'Erreur lors de la mise à jour.', 'error');
+    } finally {
+      setProcessingId(null);
+    }
+  }
 
   const filteredAdmins = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
     return admins.filter((admin) => {
+      const matchesBoutique = !boutique || admin.boutiqueId === boutique.id;
       const matchesStatus = !status || admin.status === status;
       const matchesSearch = !normalizedSearch
         || admin.email.toLowerCase().includes(normalizedSearch)
         || (admin.displayName ?? '').toLowerCase().includes(normalizedSearch)
         || admin.boutiqueName.toLowerCase().includes(normalizedSearch);
 
-      return matchesStatus && matchesSearch;
+      return matchesBoutique && matchesStatus && matchesSearch;
     });
-  }, [admins, search, status]);
+  }, [admins, boutique?.id, search, status]);
 
   const columns = [
     {
@@ -80,7 +100,7 @@ export function BoutiqueAdminsPage({ getAccessToken }: { getAccessToken: () => s
     <div>
       <PageHeader
         title="Admins boutique"
-        description="Consultez les administrateurs liés aux boutiques de la plateforme."
+        description={boutique ? `Administrateurs de ${boutique.name}.` : 'Consultez les administrateurs liés aux boutiques de la plateforme.'}
       />
 
       <Card>
@@ -97,7 +117,30 @@ export function BoutiqueAdminsPage({ getAccessToken }: { getAccessToken: () => s
           {isLoading ? <LoadingState /> : filteredAdmins.length === 0 ? (
             <EmptyState title="Aucun admin boutique" message="Aucun administrateur ne correspond aux filtres." />
           ) : (
-            <Table columns={columns} data={filteredAdmins} />
+            <Table
+              columns={columns}
+              data={filteredAdmins}
+              renderActions={(admin) => admin.status === 'ACTIVE' ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={processingId === admin.id}
+                  style={{ color: 'var(--bo-error)' }}
+                  onClick={() => updateAdminStatus(admin, 'suspend')}
+                >
+                  Désactiver
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={processingId === admin.id}
+                  onClick={() => updateAdminStatus(admin, 'activate')}
+                >
+                  Activer
+                </Button>
+              )}
+            />
           )}
         </CardBody>
       </Card>

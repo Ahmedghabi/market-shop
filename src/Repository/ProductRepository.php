@@ -36,6 +36,42 @@ final class ProductRepository extends ServiceEntityRepository
         return $this->findOneBy(['boutique' => $boutique, 'slug' => $identifier]);
     }
 
+    /** @return list<array{id: string, name: string, slug: string, boutiqueId: string, boutiqueName: string, viewsCount: int}> */
+    public function findViewStats(?Boutique $boutique = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('product')
+            ->select(
+                'product.id AS id',
+                'product.name AS name',
+                'product.slug AS slug',
+                'product.viewsCount AS viewsCount',
+                'boutique.id AS boutiqueId',
+                'boutique.name AS boutiqueName',
+            )
+            ->join('product.boutique', 'boutique')
+            ->andWhere('product.deletedAt IS NULL')
+            ->orderBy('product.viewsCount', 'DESC')
+            ->addOrderBy('product.name', 'ASC');
+
+        if ($boutique instanceof Boutique) {
+            $queryBuilder
+                ->andWhere('product.boutique = :boutique')
+                ->setParameter('boutique', $boutique);
+        }
+
+        return array_map(
+            static fn (array $row): array => [
+                'id' => (string) $row['id'],
+                'name' => (string) $row['name'],
+                'slug' => (string) $row['slug'],
+                'boutiqueId' => (string) $row['boutiqueId'],
+                'boutiqueName' => (string) $row['boutiqueName'],
+                'viewsCount' => (int) $row['viewsCount'],
+            ],
+            $queryBuilder->getQuery()->getArrayResult(),
+        );
+    }
+
     /** @return list<Product> */
     public function findSeoIndexedByBoutique(Boutique $boutique): array
     {

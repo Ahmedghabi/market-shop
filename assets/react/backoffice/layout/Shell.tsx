@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { BackOfficeAccess, Boutique } from '../types';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -13,6 +14,7 @@ export function Shell({
   onBoutiqueChange,
   onSignOut,
   access,
+  getAccessToken,
 }: {
   children: ReactNode;
   currentPath: string;
@@ -23,7 +25,14 @@ export function Shell({
   onBoutiqueChange: (b: Boutique | null) => void;
   onSignOut: () => void;
   access?: BackOfficeAccess | null;
+  getAccessToken: () => string | null;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [currentPath]);
+
   return (
     <div className="bo-shell">
       <Sidebar
@@ -31,7 +40,20 @@ export function Shell({
         userRoles={userRoles}
         boutiqueName={boutique?.name}
         access={access}
+        isOpen={menuOpen}
+        onNavigate={() => setMenuOpen(false)}
       />
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            className="bo-sidebar-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
       <Header
         userEmail={userEmail}
         userRoles={userRoles}
@@ -40,9 +62,21 @@ export function Shell({
         onBoutiqueChange={onBoutiqueChange}
         onSignOut={onSignOut}
         access={access}
+        getAccessToken={getAccessToken}
+        onMenuToggle={() => setMenuOpen((v) => !v)}
       />
       <main className="bo-content">
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPath}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

@@ -9,6 +9,7 @@ use App\Enum\UserStatus;
 use App\Repository\CustomerRepository;
 use App\Repository\CustomerAuthProviderRepository;
 use App\Security\LocalTokenManager;
+use App\Service\Subscription\SubscriptionManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,10 +25,11 @@ final class CustomerAuthController
         private EntityManagerInterface $em,
         private LocalTokenManager $tokens,
         private Security $security,
+        private SubscriptionManager $subscriptionManager,
     ) {
     }
 
-    #[Route('/api/auth/login', name: 'api_customer_login', methods: ['POST'])]
+    #[Route('/api/boutique/auth/login', name: 'api_customer_login', methods: ['POST'])]
     public function login(Request $request): JsonResponse
     {
         $boutique = $this->resolveBoutique($request);
@@ -59,7 +61,7 @@ final class CustomerAuthController
         return $this->customerResponse($customer, $user);
     }
 
-    #[Route('/api/auth/register', name: 'api_customer_register', methods: ['POST'])]
+    #[Route('/api/boutique/auth/register', name: 'api_customer_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
         $boutique = $this->resolveBoutique($request);
@@ -81,6 +83,10 @@ final class CustomerAuthController
         ]);
         if ($existing instanceof Customer) {
             return new JsonResponse(['message' => 'Un compte existe déjà pour cet email dans cette boutique.'], JsonResponse::HTTP_CONFLICT);
+        }
+
+        if (!$this->subscriptionManager->canCreateCustomer($boutique)) {
+            return new JsonResponse(['message' => 'Le quota clients de cette boutique est atteint ou son abonnement est inactif.'], JsonResponse::HTTP_CONFLICT);
         }
 
         $customer = new Customer(
@@ -110,7 +116,7 @@ final class CustomerAuthController
         return $this->customerResponse($customer, $user, JsonResponse::HTTP_CREATED);
     }
 
-    #[Route('/api/auth/social', name: 'api_customer_social_login', methods: ['POST'])]
+    #[Route('/api/boutique/auth/social', name: 'api_customer_social_login', methods: ['POST'])]
     public function socialLogin(Request $request): JsonResponse
     {
         $boutique = $this->resolveBoutique($request);
@@ -165,6 +171,10 @@ final class CustomerAuthController
 
         $customerEmail = $email ?: sprintf('%s_%s@social.local', $provider, substr($providerUserId, 0, 16));
 
+        if (!$this->subscriptionManager->canCreateCustomer($boutique)) {
+            return new JsonResponse(['message' => 'Le quota clients de cette boutique est atteint ou son abonnement est inactif.'], JsonResponse::HTTP_CONFLICT);
+        }
+
         $customer = new Customer(
             boutique: $boutique,
             email: $customerEmail,
@@ -190,7 +200,7 @@ final class CustomerAuthController
         return $this->customerResponse($customer, $user, JsonResponse::HTTP_CREATED);
     }
 
-    #[Route('/api/auth/me', name: 'api_customer_me', methods: ['GET'])]
+    #[Route('/api/boutique/auth/me', name: 'api_customer_me', methods: ['GET'])]
     public function me(Request $request): JsonResponse
     {
         $boutique = $this->resolveBoutique($request);
@@ -222,7 +232,6 @@ final class CustomerAuthController
                 'firstName' => $customer->getFirstName(),
                 'lastName' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
-                'loyaltyPoints' => $customer->getLoyaltyPoints(),
                 'boutique' => [
                     'id' => (string) $boutique->getId(),
                     'name' => $boutique->getName(),
@@ -244,7 +253,6 @@ final class CustomerAuthController
                 'firstName' => $customer->getFirstName(),
                 'lastName' => $customer->getLastName(),
                 'phone' => $customer->getPhone(),
-                'loyaltyPoints' => $customer->getLoyaltyPoints(),
                 'boutique' => [
                     'id' => (string) $boutique->getId(),
                     'name' => $boutique->getName(),

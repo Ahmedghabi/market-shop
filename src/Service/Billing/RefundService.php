@@ -14,6 +14,8 @@ use App\Enum\RefundType;
 use App\Repository\InvoiceRepository;
 use App\Repository\OrderRepository;
 use App\Repository\RefundRepository;
+use App\Service\Loyalty\LoyaltyEngine;
+use App\Security\BoutiqueContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -25,6 +27,8 @@ final readonly class RefundService
         private OrderRepository $orders,
         private EntityManagerInterface $em,
         private RefundCacheService $cache,
+        private LoyaltyEngine $loyaltyEngine,
+        private BoutiqueContext $boutiqueContext,
     ) {
     }
 
@@ -99,6 +103,7 @@ final readonly class RefundService
         if (!$refund instanceof Refund) {
             throw new NotFoundHttpException('Refund not found');
         }
+        $this->assertAccessible($refund);
 
         if (RefundStatus::Pending !== $refund->getStatus()) {
             throw new \DomainException('Only pending refunds can be approved.');
@@ -116,6 +121,12 @@ final readonly class RefundService
         $this->cache->invalidate($refundId);
         $this->cache->invalidateShop((string) $refund->getBoutique()->getId());
 
+        // Loyalty restitution/revocation is proportional to the refunded amount —
+        // full refund reverses 100%, partial refund reverses the matching ratio.
+        $orderTotalCents = $order->getTotalCents();
+        $refundRatio = $orderTotalCents > 0 ? min(1.0, $refund->getTotalCents() / $orderTotalCents) : 1.0;
+        $this->loyaltyEngine->reverseForOrder($order, $refundRatio);
+
         return $refund;
     }
 
@@ -125,6 +136,7 @@ final readonly class RefundService
         if (!$refund instanceof Refund) {
             throw new NotFoundHttpException('Refund not found');
         }
+        $this->assertAccessible($refund);
 
         if (RefundStatus::Approved !== $refund->getStatus()) {
             throw new \DomainException('Only approved refunds can be processed.');
@@ -144,6 +156,7 @@ final readonly class RefundService
         if (!$refund instanceof Refund) {
             throw new NotFoundHttpException('Refund not found');
         }
+        $this->assertAccessible($refund);
 
         if (RefundStatus::Pending !== $refund->getStatus()) {
             throw new \DomainException('Only pending refunds can be rejected.');
@@ -164,7 +177,16 @@ final readonly class RefundService
 
     public function getRefundById(string $refundId): ?Refund
     {
-        return $this->refunds->find($refundId);
+        $refund = $this->refunds->find($refundId);
+
+        return $refund instanceof Refund && $this->boutiqueContext->canAccessBoutique($refund->getBoutique()) ? $refund : null;
+    }
+
+    private function assertAccessible(Refund $refund): void
+    {
+        if (!$this->boutiqueContext->canAccessBoutique($refund->getBoutique())) {
+            throw new NotFoundHttpException('Refund not found');
+        }
     }
 
     private function createCreditNote(Refund $refund): Invoice

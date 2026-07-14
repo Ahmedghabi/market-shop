@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 540" role="img" aria-labelledby="title desc">
+  <title id="title">Hanooti</title>
+  <desc id="desc">Logo Hanooti, plateforme multi-boutique SaaS</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+    <g stroke="#2d709e">
+      <path d="M300 188V50M300 92l-35-35M300 112l38-39M244 125l-50-49M356 132l54-51M232 160H150M368 160h82M218 101h-49M382 104h53"/>
+      <path d="M150 160v-22M450 160v-22M169 76V55M435 53V33M265 57V35M338 73V51"/>
+    </g>
+    <g stroke="#4aa992">
+      <path d="M274 188v-54l-54-54M326 188v-54l54-54M250 142l-67-67M350 142l68-67M205 183H120M395 183h85"/>
+      <path d="M120 183v-20M480 183v-20M183 75V52M417 75V52"/>
+    </g>
+    <g stroke="#e87954">
+      <path d="M265 188v-75l-51-51M335 188v-75l51-51M214 62h-1M386 62h1M214 62V40M386 62V40M245 173h-79M355 173h79"/>
+      <path d="M166 173v-20M434 173v-20"/>
+    </g>
+    <g stroke="#eabb37">
+      <path d="M285 188v-42l-46-46M315 188v-42l46-46M239 100h-38M361 100h38M201 100V82M399 100V82"/>
+    </g>
+  </g>
+
+  <g stroke="#2d709e" stroke-width="7" stroke-linejoin="round">
+    <path fill="#ffffff" d="M214 214l86-70 86 70v132c0 10-8 18-18 18h-136c-10 0-18-8-18-18Z"/>
+    <path fill="#e87954" d="M300 177l-40 33v116h40Z"/>
+    <path fill="#4aa992" d="M300 177l40 33v116h-40Z"/>
+    <path fill="#ffffff" d="M300 144l86 70-20 25-66-54-66 54-20-25Z"/>
+  </g>
+  <g fill="#2d709e">
+    <path d="M190 274h-54l-18 18v42h72v-60Zm-51 18h15v20h-15v-20Zm25 0h15v20h-15v-20Z"/>
+    <path d="M464 274h-54v60h72v-42l-18-18Zm-36 18h15v20h-15v-20Zm25 0h15v20h-15v-20Z" fill="#eabb37"/>
+  </g>
+  <g fill="#ffffff">
+    <path d="M279 255h42v105h-42z"/>
+    <path d="M226 254h34v72h-34z"/>
+    <path d="M340 254h34v72h-34z"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="300" y="424" fill="#245b8d" font-size="62" font-weight="800" letter-spacing="2">HANOOTI</text>
+    <text x="300" y="465" fill="#3f454b" font-size="21" letter-spacing="1.2">MULTI-BOUTIQUE SaaS</text>
+  </g>
+</svg>

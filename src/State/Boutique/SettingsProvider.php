@@ -13,6 +13,7 @@ use App\Service\FrontOfficeCacheService;
 use App\Service\SeoService;
 use App\State\Common\BoutiqueAwareProviderTrait;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /** @implements ProviderInterface<BoutiqueSettingsOutput> */
 final readonly class SettingsProvider implements ProviderInterface
@@ -51,7 +52,12 @@ final readonly class SettingsProvider implements ProviderInterface
     private function resolveBoutique(array $uriVariables, array $context): ?Boutique
     {
         if (isset($uriVariables['boutiqueId'])) {
-            return $this->boutiques->findBySlugOrId((string) $uriVariables['boutiqueId']);
+            $boutique = $this->boutiques->findBySlugOrId((string) $uriVariables['boutiqueId']);
+            if ($boutique && !$this->context->canAccessBoutique($boutique)) {
+                throw new AccessDeniedHttpException('Access denied');
+            }
+
+            return $boutique;
         }
 
         return $this->resolveBoutiqueFromRequest($context);
@@ -96,9 +102,6 @@ final readonly class SettingsProvider implements ProviderInterface
         $output->enableEmailVerification = $settings->isEnableEmailVerification();
         $output->enableCustomerEmailVerification = $settings->isEnableCustomerEmailVerification();
         $output->createAccountAfterOrder = $settings->isCreateAccountAfterOrder();
-        $output->enableLoyalty = $settings->isEnableLoyalty();
-        $output->loyaltyPointsPerAmount = $settings->getLoyaltyPointsPerAmount();
-        $output->loyaltyAmountCents = $settings->getLoyaltyAmountCents();
         $output->facebookUrl = $socialLinks['facebook'] ?? null;
         $output->instagramUrl = $socialLinks['instagram'] ?? null;
         $output->tiktokUrl = $socialLinks['tiktok'] ?? null;

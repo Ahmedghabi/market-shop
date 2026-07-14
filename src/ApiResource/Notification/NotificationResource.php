@@ -13,17 +13,17 @@ use App\State\Notification\NotificationProvider;
     operations: [
         new GetCollection(
             uriTemplate: '/notifications',
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_CAISSIER')",
             provider: NotificationProvider::class,
         ),
         new Get(
             uriTemplate: '/notifications/{id}',
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_CAISSIER')",
             provider: NotificationProvider::class,
         ),
         new Patch(
             uriTemplate: '/notifications/{id}/read',
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN') or is_granted('ROLE_CAISSIER')",
             provider: NotificationProvider::class,
             processor: NotificationProvider::class,
             input: false,

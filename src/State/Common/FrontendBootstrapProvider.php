@@ -5,6 +5,7 @@ namespace App\State\Common;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\Common\FrontendBootstrapResource;
+use App\Entity\Boutique;
 use App\Enum\BoutiqueStatus;
 use App\Repository\BoutiqueRepository;
 
@@ -37,7 +38,7 @@ final class FrontendBootstrapProvider implements ProviderInterface
                 return [];
             }
 
-            return array_map(function (Boutique\Boutique $boutique): array {
+            return array_map(function (Boutique $boutique): array {
                 return [
                     'id' => (string) $boutique->getId(),
                     'name' => $boutique->getName(),

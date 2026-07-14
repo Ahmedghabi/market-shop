@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Guide administrateur boutique Hanooti</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 18mm; }
+    :root { color: #172033; font-family: Arial, sans-serif; }
+    body { margin: 0; font-size: 10.5pt; line-height: 1.45; }
+    h1 { color: #102a43; font-size: 25pt; margin: 0 0 12pt; }
+    h2 { color: #0b5d6b; font-size: 17pt; border-bottom: 2px solid #d7e8eb; padding-bottom: 4pt; margin-top: 22pt; }
+    h3 { color: #1f4e5f; font-size: 12.5pt; margin-top: 15pt; }
+    h4 { color: #334e68; font-size: 11pt; margin-bottom: 4pt; }
+    p { margin: 5pt 0; }
+    ul, ol { margin-top: 4pt; }
+    li { margin: 3pt 0; }
+    table { width: 100%; border-collapse: collapse; margin: 8pt 0 12pt; font-size: 9pt; }
+    th { background: #0b5d6b; color: white; text-align: left; }
+    th, td { border: 1px solid #bfd2d7; padding: 5pt; vertical-align: top; }
+    tr:nth-child(even) td { background: #f4f8f9; }
+    code { background: #eef3f5; color: #183b56; padding: 1pt 3pt; border-radius: 2pt; }
+    pre { background: #172033; color: #edf2f7; padding: 9pt; border-radius: 4pt; font-size: 8.5pt; white-space: pre-wrap; }
+    .cover { min-height: 245mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+    .cover .brand { color: #0b5d6b; font-size: 15pt; font-weight: bold; letter-spacing: 1pt; }
+    .cover .subtitle { color: #52606d; font-size: 14pt; max-width: 125mm; }
+    .cover .meta { margin-top: 35pt; color: #627d98; }
+    .note, .warning, .success { padding: 8pt 10pt; margin: 9pt 0; border-left: 4px solid; }
+    .note { background: #edf7f8; border-color: #0b5d6b; }
+    .warning { background: #fff7ed; border-color: #d97706; }
+    .success { background: #ecfdf5; border-color: #059669; }
+    .page-break { page-break-before: always; }
+    .small { color: #627d98; font-size: 8.5pt; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li:before { content: "[ ] "; color: #0b5d6b; font-weight: bold; }
+    .toc li { margin: 5pt 0; }
+    .footer { color: #829ab1; font-size: 8pt; margin-top: 20pt; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="brand">HANOOTI SaaS</div>
+    <h1>Guide administrateur boutique</h1>
+    <p class="subtitle">Utiliser le back-office, gérer son catalogue, traiter les commandes et configurer sa boutique en ligne.</p>
+    <p class="meta">Version 1.0<br>17 juillet 2026<br>Public : BOUTIQUE_ADMIN</p>
+  </section>
+
+  <h2>Sommaire</h2>
+  <ol class="toc">
+    <li>Comprendre le rôle administrateur boutique</li>
+    <li>Se connecter et choisir sa boutique</li>
+    <li>Configurer la boutique avant l'ouverture</li>
+    <li>Gérer le catalogue et le stock</li>
+    <li>Traiter les commandes et le checkout</li>
+    <li>Gérer les clients</li>
+    <li>Configurer promotions, coupons et fidélité</li>
+    <li>Configurer la livraison et les paiements</li>
+    <li>Personnaliser le storefront</li>
+    <li>Gérer les employés et les permissions</li>
+    <li>Abonnement et modules</li>
+    <li>Notifications, messagerie et suivi</li>
+    <li>Exemples API</li>
+    <li>Dépannage et checklist quotidienne</li>
+  </ol>
+
+  <h2>1. Comprendre le rôle administrateur boutique</h2>
+  <p>Le rôle <code>BOUTIQUE_ADMIN</code> administre une ou plusieurs boutiques auxquelles l'utilisateur est rattaché. Il peut gérer le catalogue, les ventes, les clients, le contenu et la configuration de sa boutique. Il ne gère pas les plans globaux de la plateforme ni les autres boutiques sans autorisation explicite.</p>
+  <div class="note"><strong>Règle d'isolation :</strong> chaque produit, commande, client, coupon, réglage et module est associé à une boutique. Le sous-domaine et les contrôles backend déterminent la boutique active. Ne partagez jamais un identifiant d'une boutique avec une autre.</div>
+  <h3>Ce que l'administrateur peut faire</h3>
+  <table>
+    <tr><th>Domaine</th><th>Actions principales</th><th>Résultat attendu</th></tr>
+    <tr><td>Catalogue</td><td>Catégories, marques, produits, filtres, stock</td><td>Les clients voient uniquement les produits publiés et disponibles.</td></tr>
+    <tr><td>Ventes</td><td>Commandes, clients, paiement, facture</td><td>Chaque commande suit un statut traçable.</td></tr>
+    <tr><td>Marketing</td><td>Promotions, coupons, fidélité</td><td>Les règles sont valides, datées et limitées à la boutique.</td></tr>
+    <tr><td>Livraison</td><td>Règles de frais, comptes transporteurs, expéditions</td><td>Le montant et le transporteur sont visibles avant validation.</td></tr>
+    <tr><td>Storefront</td><td>Thème, menus, annonces, CMS, paramètres</td><td>La boutique publique reflète l'identité commerciale.</td></tr>
+  </table>
+
+  <h2>2. Se connecter et choisir sa boutique</h2>
+  <h3>Connexion web</h3>
+  <ol>
+    <li>Ouvrir <code>/auth/login</code>.</li>
+    <li>Saisir l'adresse professionnelle et le mot de passe.</li>
+    <li>Cliquer sur <strong>Se connecter</strong>.</li>
+    <li>Ouvrir <strong>Tableau de bord</strong>, puis vérifier le nom de la boutique dans l'en-tête.</li>
+  </ol>
+  <p>Une boutique publique utilise son sous-domaine. Exemple : <code>https://ma-boutique.hanooti.com</code>. En environnement local, l'équivalent est souvent <code>http://ma-boutique.localhost:8082</code>.</p>
+  <div class="warning"><strong>Si la connexion réussit mais le menu reste vide :</strong> vérifiez le statut utilisateur, le rattachement dans <strong>Employés</strong>, les permissions et l'activation des modules du plan.</div>
+  <h3>Changer de boutique</h3>
+  <ol>
+    <li>Ouvrir le sélecteur de boutique dans l'en-tête.</li>
+    <li>Sélectionner la boutique cible.</li>
+    <li>Vérifier que le sous-domaine et les données affichées ont changé.</li>
+  </ol>
+  <p>Un utilisateur ne doit pas modifier l'URL pour contourner le sélecteur. L'API bloque aussi les accès croisés.</p>
+
+  <h2>3. Configurer la boutique avant l'ouverture</h2>
+  <p>Suivre cet ordre réduit les erreurs lors du premier checkout.</p>
+  <ol>
+    <li><strong>Paramètres :</strong> nom, logo, téléphone, e-mail, adresse, devise et identité visuelle.</li>
+    <li><strong>Paiements :</strong> activer au moins un mode, par exemple paiement à la livraison.</li>
+    <li><strong>Livraison :</strong> créer une règle de prix et vérifier les villes desservies.</li>
+    <li><strong>Catégories et marques :</strong> préparer l'arborescence avant les produits.</li>
+    <li><strong>Produits :</strong> renseigner SKU, prix, stock, catégorie et images.</li>
+    <li><strong>Storefront :</strong> choisir le thème, les menus et les annonces.</li>
+    <li><strong>Test :</strong> ajouter un produit au panier et simuler un checkout.</li>
+  </ol>
+  <h3>Checklist d'ouverture</h3>
+  <ul class="checklist">
+    <li>La boutique est active et publiée.</li>
+    <li>Le logo, le favicon et les couleurs sont corrects.</li>
+    <li>Au moins une catégorie et un produit publié existent.</li>
+    <li>Le stock disponible est supérieur à zéro pour les produits gérés en stock.</li>
+    <li>Un paiement et une règle de livraison sont actifs.</li>
+    <li>Le panier et le checkout ont été testés sur mobile.</li>
+  </ul>
+
+  <h2>4. Gérer le catalogue et le stock</h2>
+  <h3>Créer une catégorie</h3>
+  <ol>
+    <li>Ouvrir <strong>Catalogue &gt; Catégories</strong>.</li>
+    <li>Cliquer sur <strong>Ajouter</strong>.</li>
+    <li>Renseigner un nom court et descriptif.</li>
+    <li>Définir éventuellement l'image, la position et l'affichage en page d'accueil.</li>
+    <li>Enregistrer, puis vérifier la catégorie dans le storefront.</li>
+  </ol>
+  <p>Exemple : <code>Femme / Robes / Robes d'été</code>. Éviter de créer deux catégories ayant le même sens.</p>
+  <h3>Créer un produit</h3>
+  <table>
+    <tr><th>Champ</th><th>Conseil</th><th>Exemple</th></tr>
+    <tr><td>Nom</td><td>Nom lisible par le client</td><td>Robe lin beige</td></tr>
+    <tr><td>SKU</td><td>Identifiant interne unique</td><td>ROB-LIN-BEIGE-M</td></tr>
+    <tr><td>Prix de vente</td><td>Montant en centimes dans l'API, formaté dans l'interface</td><td>159,00 TND</td></tr>
+    <tr><td>Statut</td><td>Brouillon, actif ou publié selon le workflow</td><td>Publié</td></tr>
+    <tr><td>Stock</td><td>Activer la gestion si le produit est physique</td><td>24 unités</td></tr>
+    <tr><td>SEO</td><td>Titre et description spécifiques</td><td>Robe en lin naturelle - Boutique X</td></tr>
+  </table>
+  <div class="success"><strong>Bonne pratique :</strong> tester le produit côté public après publication. Vérifier le titre, les images, le prix, le stock, la variante et le bouton d'ajout au panier.</div>
+  <h3>Stock et variantes</h3>
+  <ul>
+    <li>Utiliser une variante pour une taille, une couleur ou une finition ayant un SKU distinct.</li>
+    <li>Définir une quantité et un seuil d'alerte par produit.</li>
+    <li>Ne pas mettre un produit en publié si son stock est nul, sauf produit virtuel.</li>
+    <li>Après une correction manuelle, contrôler une commande réelle ou de test.</li>
+  </ul>
+
+  <h2>5. Traiter les commandes et le checkout</h2>
+  <h3>Cycle de commande</h3>
+  <p>Les statuts métier utilisés par la plateforme sont :</p>
+  <table>
+    <tr><th>Statut</th><th>Signification</th><th>Action administrateur</th></tr>
+    <tr><td><code>pending</code></td><td>Commande reçue, non finalisée</td><td>Vérifier les coordonnées et le paiement.</td></tr>
+    <tr><td><code>paid</code></td><td>Paiement confirmé</td><td>Préparer l'expédition.</td></tr>
+    <tr><td><code>shipped</code></td><td>Colis remis au transporteur</td><td>Ajouter ou synchroniser le suivi.</td></tr>
+    <tr><td><code>delivered</code></td><td>Livraison confirmée</td><td>Clôturer le suivi client.</td></tr>
+    <tr><td><code>completed</code></td><td>Commande terminée</td><td>Conserver la facture et l'historique.</td></tr>
+    <tr><td><code>cancelled</code></td><td>Commande annulée</td><td>Documenter la raison et restaurer le stock si nécessaire.</td></tr>
+    <tr><td><code>refunded</code></td><td>Montant remboursé</td><td>Vérifier l'avoir et la trace du remboursement.</td></tr>
+  </table>
+  <h3>Procédure de traitement</h3>
+  <ol>
+    <li>Ouvrir <strong>Ventes &gt; Commandes</strong>.</li>
+    <li>Filtrer par <strong>pending</strong> ou par date.</li>
+    <li>Vérifier les articles, le total, l'adresse, le téléphone et le mode de paiement.</li>
+    <li>Confirmer la disponibilité du stock.</li>
+    <li>Préparer l'expédition ou annuler avec une raison claire.</li>
+    <li>Après expédition, renseigner le transporteur et le numéro de suivi.</li>
+  </ol>
+  <div class="warning"><strong>Paiement :</strong> ne jamais marquer une commande comme payée uniquement parce que le client fournit une capture d'écran. Utiliser la confirmation du moyen de paiement configuré.</div>
+
+  <h2>6. Gérer les clients</h2>
+  <ul>
+    <li>Ouvrir <strong>Ventes &gt; Clients</strong>.</li>
+    <li>Rechercher par nom, e-mail ou téléphone.</li>
+    <li>Vérifier l'historique des commandes avant de modifier une information.</li>
+    <li>Ne pas exporter ou partager les données clients hors des outils autorisés.</li>
+    <li>Corriger les doublons avec prudence : l'e-mail et le téléphone peuvent être utilisés pour retrouver le client au checkout.</li>
+  </ul>
+  <p>Les données d'une boutique ne doivent pas apparaître dans la liste d'une autre boutique. Une réponse <code>403</code> ou <code>404</code> lors d'un accès croisé est attendue.</p>
+
+  <h2>7. Promotions, coupons et fidélité</h2>
+  <h3>Promotion</h3>
+  <ol>
+    <li>Ouvrir <strong>Marketing &gt; Promotions</strong>.</li>
+    <li>Choisir la portée : globale, catégorie ou produit.</li>
+    <li>Choisir le type : pourcentage ou montant fixe.</li>
+    <li>Définir les dates de début et de fin.</li>
+    <li>Tester avec un panier dont le total est connu.</li>
+  </ol>
+  <h3>Coupon</h3>
+  <p>Exemple de règle : <code>ETE15</code>, remise de 15 %, panier minimum 100 TND, valable du 01/06 au 31/08, usage limité à 1 par client.</p>
+  <ul>
+    <li>Utiliser des codes simples à lire et difficiles à deviner.</li>
+    <li>Renseigner la limite globale et la limite par client.</li>
+    <li>Vérifier la combinaison avec les autres promotions.</li>
+    <li>Désactiver le coupon après une campagne terminée.</li>
+  </ul>
+  <h3>Fidélité</h3>
+  <ul>
+    <li>Configurer le programme dans <strong>Fidélité</strong> ou dans le module associé.</li>
+    <li>Définir la règle d'acquisition et les récompenses.</li>
+    <li>Tester l'affichage du solde et du devis de récompense côté client.</li>
+    <li>Vérifier que l'utilisation de points est confirmée seulement après validation du checkout.</li>
+  </ul>
+
+  <h2>8. Livraison et paiements</h2>
+  <h3>Règle de livraison</h3>
+  <p>Créer une règle dans <strong>Ventes &gt; Livraison</strong>. Exemple :</p>
+  <table>
+    <tr><th>Champ</th><th>Valeur</th></tr>
+    <tr><td>Nom</td><td>Livraison standard Tunis</td></tr>
+    <tr><td>Type</td><td>Prix fixe</td></tr>
+    <tr><td>Prix</td><td>7,00 TND</td></tr>
+    <tr><td>Actif</td><td>Oui</td></tr>
+  </table>
+  <p>Les règles par poids, distance ou montant du panier doivent être ordonnées par priorité. Tester les limites : panier inférieur, égal et supérieur au seuil.</p>
+  <h3>Compte transporteur</h3>
+  <ol>
+    <li>Créer ou sélectionner le transporteur.</li>
+    <li>Renseigner l'URL, l'authentification et les paramètres requis.</li>
+    <li>Utiliser le bouton <strong>Vérifier</strong>.</li>
+    <li>Définir un compte par défaut uniquement après un test réussi.</li>
+  </ol>
+  <div class="warning"><strong>Production :</strong> utiliser des clés sandbox lors des tests. Ne pas saisir une clé privée dans une capture d'écran, un ticket ou un document partagé.</div>
+  <h3>Paiements</h3>
+  <p>Activer uniquement les méthodes réellement opérationnelles. Pour un lancement simple, commencer par <strong>CASH_ON_DELIVERY</strong>, puis ajouter les autres méthodes après validation de leur compte marchand.</p>
+
+  <h2>9. Personnaliser le storefront</h2>
+  <h3>Paramètres et apparence</h3>
+  <ul>
+    <li><strong>Paramètres :</strong> logo, couleurs, police, slogan, favicon, maintenance, réseaux sociaux.</li>
+    <li><strong>Boutique en ligne :</strong> thème et configuration d'affichage.</li>
+    <li><strong>Menus :</strong> menus header/footer, ordre, liens, pages, catégories et produits.</li>
+    <li><strong>CMS :</strong> pages, blocs et contenu éditorial.</li>
+    <li><strong>Annonces :</strong> bandeau fixe, défilement ou slider, dates et pages d'affichage.</li>
+  </ul>
+  <h3>Exemple d'annonce</h3>
+  <p><strong>Texte :</strong> Livraison offerte dès 150 TND. <strong>Type :</strong> fixe. <strong>Position :</strong> au-dessus du header. <strong>Dates :</strong> campagne limitée. <strong>Dismissible :</strong> oui.</p>
+  <p>Après chaque changement, vérifier la page d'accueil, le catalogue, le détail produit, le panier, le checkout et la version mobile.</p>
+
+  <h2>10. Employés et permissions</h2>
+  <table>
+    <tr><th>Rôle</th><th>Usage</th></tr>
+    <tr><td><code>ROLE_BOUTIQUE_ADMIN</code></td><td>Configuration et gestion complète de la boutique autorisée.</td></tr>
+    <tr><td><code>ROLE_EMPLOYEE</code></td><td>Accès limité selon les permissions assignées.</td></tr>
+    <tr><td><code>ROLE_CAISSIER</code></td><td>Ventes et commandes selon les permissions.</td></tr>
+    <tr><td><code>ROLE_CUSTOMER</code></td><td>Compte client, panier, commandes et fidélité personnelles.</td></tr>
+  </table>
+  <ol>
+    <li>Ouvrir <strong>Configuration &gt; Employés</strong>.</li>
+    <li>Créer l'utilisateur avec son e-mail professionnel.</li>
+    <li>Choisir la boutique et le rôle minimum nécessaire.</li>
+    <li>Attribuer seulement les permissions nécessaires à la fonction.</li>
+    <li>Tester la connexion avec le compte employé.</li>
+    <li>Retirer ou suspendre l'accès dès le départ de l'employé.</li>
+  </ol>
+  <div class="note"><strong>Principe du moindre privilège :</strong> un caissier n'a pas besoin de modifier les paramètres, les employés ou l'abonnement. Une permission absente doit bloquer l'opération au backend, même si quelqu'un appelle directement l'API.</div>
+
+  <h2>11. Abonnement et modules</h2>
+  <p>L'accès à un module suit trois contrôles :</p>
+  <ol>
+    <li>Le module est activé sur la plateforme.</li>
+    <li>Le plan de la boutique autorise le module.</li>
+    <li>Le module est activé pour la boutique.</li>
+  </ol>
+  <p>Si une page disparaît du menu, vérifier ces trois niveaux avant de conclure à un bug. Le plan et les demandes d'abonnement sont administrés selon les droits disponibles ; les réglages globaux restent réservés au SUPER_ADMIN.</p>
+  <h3>Exemple</h3>
+  <p>Le menu <strong>Promotions</strong> n'apparaît pas :</p>
+  <ol>
+    <li>Vérifier que le module promotions est actif globalement.</li>
+    <li>Vérifier que le plan contient promotions.</li>
+    <li>Activer promotions dans la configuration de la boutique.</li>
+    <li>Vérifier les permissions <code>marketing.promotion.manage</code> et <code>marketing.coupon.manage</code>.</li>
+  </ol>
+
+  <h2>12. Notifications, messagerie et suivi</h2>
+  <ul>
+    <li><strong>Notifications :</strong> consulter les alertes et marquer une notification comme lue.</li>
+    <li><strong>Messagerie :</strong> répondre aux conversations clients depuis le back-office.</li>
+    <li><strong>Suivi :</strong> vérifier les expéditions et les événements de commande.</li>
+    <li><strong>Webhooks :</strong> les événements externes sont configurés au niveau autorisé ; tester l'URL avec un endpoint sandbox.</li>
+  </ul>
+  <p>Une notification ou une conversation doit rester rattachée à la boutique et au client concernés. Ne pas copier une conversation dans un outil externe sans nécessité métier.</p>
+
+  <h2>13. Exemples API</h2>
+  <p>Les appels ci-dessous sont des exemples. Remplacer les valeurs entre accolades et conserver le token uniquement en mémoire.</p>
+  <h3>Connexion</h3>
+  <pre>curl -X POST https://{slug}.hanooti.com/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"********"}'</pre>
+  <h3>Créer une catégorie</h3>
+  <pre>curl -X POST https://{slug}.hanooti.com/api/categories \
+  -H 'Authorization: Bearer {ACCESS_TOKEN}' \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Nouveautés","isActive":true}'</pre>
+  <h3>Créer un produit</h3>
+  <pre>curl -X POST https://{slug}.hanooti.com/api/products \
+  -H 'Authorization: Bearer {ACCESS_TOKEN}' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Robe en lin beige",
+    "sku":"ROB-LIN-BEIGE-M",
+    "status":"PUBLISHED",
+    "sellingPrice":15900,
+    "stockQuantity":24,
+    "categoryId":"{CATEGORY_UUID}"
+  }'</pre>
+  <p>Les montants API sont généralement exprimés en centimes : <code>15900</code> correspond à 159,00 TND.</p>
+  <h3>Ajouter au panier et checkout</h3>
+  <pre>curl -X POST https://{slug}.hanooti.com/api/cart/items \
+  -H 'Content-Type: application/json' \
+  -d '{"productId":"{PRODUCT_UUID}","quantity":1}'
+
+curl -X POST https://{slug}.hanooti.com/api/cart/checkout \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "paymentMethodCode":"CASH_ON_DELIVERY",
+    "customerEmail":"client@example.com",
+    "firstName":"Amine",
+    "lastName":"Client",
+    "phone":"+21620000000",
+    "shippingAddress":"1 Rue de la Boutique",
+    "shippingCity":"Tunis",
+    "shippingPostalCode":"1000",
+    "shippingCountry":"Tunisie"
+  }'</pre>
+
+  <h2>14. Dépannage</h2>
+  <table>
+    <tr><th>Symptôme</th><th>Vérifications</th></tr>
+    <tr><td>401 Unauthorized</td><td>Session expirée, mauvais token ou utilisateur inactif. Se reconnecter.</td></tr>
+    <tr><td>403 Forbidden</td><td>Rôle ou permission insuffisant. Vérifier Employés et RolePermission.</td></tr>
+    <tr><td>404 sur une autre boutique</td><td>Comportement attendu : l'objet n'appartient pas à la boutique active.</td></tr>
+    <tr><td>Menu absent</td><td>Vérifier module plateforme, plan, module boutique et permission.</td></tr>
+    <tr><td>Produit non visible</td><td>Vérifier statut, publication, boutique, stock et cache.</td></tr>
+    <tr><td>Checkout impossible</td><td>Vérifier panier, produit actif, paiement, livraison, adresse et quotas.</td></tr>
+    <tr><td>Frais incorrects</td><td>Vérifier priorité, seuils, ville, poids et règle active.</td></tr>
+    <tr><td>Page blanche après modification</td><td>Actualiser, vérifier le build frontend et consulter les logs backend.</td></tr>
+  </table>
+
+  <h2>15. Checklist quotidienne</h2>
+  <ul class="checklist">
+    <li>Lire les commandes pending.</li>
+    <li>Contrôler les alertes de stock faible.</li>
+    <li>Vérifier les paiements en attente ou échoués.</li>
+    <li>Contrôler les expéditions non suivies.</li>
+    <li>Répondre aux messages clients prioritaires.</li>
+    <li>Vérifier les coupons expirés et les campagnes actives.</li>
+    <li>Examiner les notifications d'erreur d'intégration.</li>
+  </ul>
+  <h3>Checklist avant livraison d'une nouvelle campagne</h3>
+  <ul class="checklist">
+    <li>Prix et remise testés avec un panier réel de test.</li>
+    <li>Dates de début et de fin validées.</li>
+    <li>Stock suffisant.</li>
+    <li>Règle de livraison compatible avec le panier.</li>
+    <li>Message et visuels relus sur mobile.</li>
+    <li>Un checkout complet testé avant publication.</li>
+  </ul>
+  <p class="footer">Ce document décrit l'utilisation du rôle BOUTIQUE_ADMIN dans Hanooti. Les droits visibles peuvent varier selon le plan, les modules actifs et les permissions attribuées.</p>
+</body>
+</html>

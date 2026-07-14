@@ -1,13 +1,18 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useMemo, useState } from 'react';
 import { appIcons } from '../../icons/fontAwesome';
+import { BrandLogo } from '../../components/BrandLogo';
 import { Badge, Button, Card, Input } from '../../components/ui';
+import { frontOfficeUrl } from '../../backoffice/utils/frontOfficeUrl';
 
 type BoutiqueItem = {
   id: string;
   name: string;
   slug: string;
   status: string;
+  isPublished?: boolean;
+  isVisiblePublicly?: boolean;
+  customDomain?: string | null;
   primaryColor: string;
   secondaryColor: string;
   logoUrl: string | null;
@@ -55,7 +60,7 @@ export function BoutiqueCentralPage({ title, description }: { title: string; des
 
   const totalProducts = boutiques.reduce((sum, b) => sum + b.productsCount, 0);
   const totalOrders = boutiques.reduce((sum, b) => sum + b.ordersCount, 0);
-  const featured = boutiques.filter((b) => b.status === 'published').slice(0, 6);
+  const featured = boutiques.filter((b) => b.status === 'active' && b.isPublished === true && b.isVisiblePublicly !== false).slice(0, 6);
 
   async function handleQuickRegister(event?: React.FormEvent) {
     if (event) event.preventDefault();
@@ -68,10 +73,7 @@ export function BoutiqueCentralPage({ title, description }: { title: string; des
       <header className="sticky top-0 z-50 border-b border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface-container-lowest)]/95 backdrop-blur">
         <div className="ds-page flex items-center justify-between gap-6 py-4">
           <a className="flex items-center gap-3 font-bold text-[color:var(--ds-primary)] no-underline" href="/">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--ds-primary)] text-white">
-              <FontAwesomeIcon icon={appIcons.shop} />
-            </span>
-            <span>Hanooty</span>
+            <BrandLogo className="hanooti-logo--marketplace" />
           </a>
           <nav className="hidden items-center gap-6 md:flex" aria-label="Navigation publique">
             <a className="font-semibold text-[color:var(--ds-on-surface-variant)] no-underline" href="/boutiques">Boutiques</a>
@@ -90,13 +92,13 @@ export function BoutiqueCentralPage({ title, description }: { title: string; des
 
           <div className="relative grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
-              <p className="ds-hero__eyebrow">Hanooty</p>
+              <p className="ds-hero__eyebrow">Hanooti</p>
               <h1 className="ds-hero__title">{title}</h1>
               <p className="ds-hero__subtitle">{description}</p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <div className="rounded-2xl border border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface-container-lowest)]/85 p-5 max-w-sm backdrop-blur">
                   <p className="text-xs font-bold uppercase tracking-[0.15em] text-[color:var(--ds-on-surface-variant)]">Créer ta boutique</p>
-                  <strong className="mt-1 block text-lg">Commence avec 29 € / mois</strong>
+                  <strong className="mt-1 block text-lg">Commence gratuitement, dès 99 DT / mois</strong>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface-container-lowest)]/85 p-5 max-w-sm backdrop-blur">
                   <p className="text-xs font-bold uppercase tracking-[0.15em] text-[color:var(--ds-on-surface-variant)]">Aucune carte de crédit requise</p>
@@ -192,7 +194,7 @@ export function BoutiqueCentralPage({ title, description }: { title: string; des
               : 0;
 
             return (
-              <a key={boutique.id} href={`/boutiques/${boutique.slug}`} className="ds-card p-0 overflow-hidden no-underline transition hover:-translate-y-1" style={{ borderTop: `4px solid ${boutique.primaryColor}` }}>
+              <a key={boutique.id} href={frontOfficeUrl(boutique)} className="ds-card p-0 overflow-hidden no-underline transition hover:-translate-y-1" style={{ borderTop: `4px solid ${boutique.primaryColor}` }}>
                 <div className="p-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white text-lg font-bold" style={{ backgroundColor: boutique.primaryColor }}>
@@ -210,7 +212,7 @@ export function BoutiqueCentralPage({ title, description }: { title: string; des
                   </div>
 
                   <div className="mt-4 flex gap-2">
-                    <Badge tone={boutique.status === 'published' ? 'success' : 'neutral'}>{boutique.status}</Badge>
+                     <Badge tone="success">Publié</Badge>
                   </div>
                 </div>
               </a>

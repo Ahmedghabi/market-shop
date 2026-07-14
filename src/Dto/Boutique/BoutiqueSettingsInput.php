@@ -2,8 +2,37 @@
 
 namespace App\Dto\Boutique;
 
+use Symfony\Component\Validator\Constraints as Assert;
+
 final class BoutiqueSettingsInput
 {
+    final public const FONTS = [
+        'Inter, system-ui, sans-serif',
+        '"Nunito Sans", Rubik, system-ui, sans-serif',
+        '"DM Sans", Inter, sans-serif',
+        '"Open Sans", system-ui, sans-serif',
+        'Lato, "Helvetica Neue", Arial, sans-serif',
+        '"Source Sans 3", system-ui, sans-serif',
+        '"IBM Plex Sans", system-ui, sans-serif',
+        '"Work Sans", system-ui, sans-serif',
+        '"Plus Jakarta Sans", system-ui, sans-serif',
+        'Montserrat, system-ui, sans-serif',
+        'Raleway, system-ui, sans-serif',
+        '"Playfair Display", Georgia, serif',
+        '"Libre Baskerville", Georgia, serif',
+        'Rubik, system-ui, sans-serif',
+        '"Space Grotesk", system-ui, sans-serif',
+        'Manrope, system-ui, sans-serif',
+        'Geist, system-ui, sans-serif',
+        '"JetBrains Mono", "Fira Code", monospace',
+    ];
+
+    /** @return list<string> */
+    public static function getFonts(): array
+    {
+        return self::FONTS;
+    }
+
     public ?string $shopName = null;
     public ?string $logoUrl = null;
     public ?string $primaryColor = null;
@@ -19,6 +48,7 @@ final class BoutiqueSettingsInput
     public ?string $favicon = null;
     public ?string $coverImage = null;
     public ?string $description = null;
+    #[Assert\Choice(callback: [self::class, 'getFonts'], message: 'Police non reconnue. Choisissez parmi la liste des polices standard.')]
     public ?string $fontFamily = null;
     public ?string $fontSize = null;
     public ?string $borderRadius = null;
@@ -34,9 +64,6 @@ final class BoutiqueSettingsInput
     public ?bool $enableEmailVerification = null;
     public ?bool $enableCustomerEmailVerification = null;
     public ?bool $createAccountAfterOrder = null;
-    public ?bool $enableLoyalty = null;
-    public ?int $loyaltyPointsPerAmount = null;
-    public ?int $loyaltyAmountCents = null;
     public ?string $facebookUrl = null;
     public ?string $instagramUrl = null;
     public ?string $tiktokUrl = null;

@@ -21,7 +21,7 @@ class PDF(FPDF):
         if self.page_no() > 1:
             self.set_font('R', '', 8)
             self.set_text_color(130, 130, 130)
-            self.cell(0, 8, "Hanooty \u2014 Guide utilisateur", align='R')
+            self.cell(0, 8, "Hanooti \u2014 Guide utilisateur", align='R')
             self.ln(10)
 
     def footer(self):
@@ -35,7 +35,7 @@ class PDF(FPDF):
         self.ln(50)
         self.set_font('S', 'B', 32)
         self.set_text_color(53, 37, 205)
-        self.cell(0, 14, 'Hanooty', align='C')
+        self.cell(0, 14, 'Hanooti', align='C')
         self.ln(14)
         self.set_font('S', '', 18)
         self.set_text_color(80, 95, 118)
@@ -53,7 +53,7 @@ class PDF(FPDF):
         self.set_text_color(100, 100, 100)
         self.cell(0, 7, 'Naviguer, gerer sa boutique, passer commande', align='C')
         self.ln(7)
-        self.cell(0, 7, "et suivre ses achats sur Hanooty", align='C')
+        self.cell(0, 7, "et suivre ses achats sur Hanooti", align='C')
         self.ln(18)
         self.set_font('R', '', 9)
         self.cell(0, 7, 'Document genere le 25 juin 2026', align='C')
@@ -163,7 +163,7 @@ def build():
 
     # ---- 1 ----
     pdf.h1('1. Introduction')
-    pdf.p("Hanooty est une plateforme de commerce en ligne qui permet a chaque boutique de gerer son catalogue, ses commandes, ses stocks et sa relation client. Ce guide est destine aux administrateurs boutique, caissiers et clients.")
+    pdf.p("Hanooti est une plateforme de commerce en ligne qui permet a chaque boutique de gerer son catalogue, ses commandes, ses stocks et sa relation client. Ce guide est destine aux administrateurs boutique, caissiers et clients.")
     pdf.info("Vous avez ete invite sur la plateforme par le Super Administrateur. Contactez-le si vous n'arrivez pas a vous connecter.")
 
     # ---- 2 ----

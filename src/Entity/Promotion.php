@@ -31,8 +31,6 @@ class Promotion extends AbstractEntity implements SoftDeletableInterface
         private Boutique $boutique,
         #[ORM\Column(length: 160)]
         private string $name,
-        #[ORM\Column(type: 'text', nullable: true)]
-        private ?string $description = null,
         #[ORM\Column(length: 32, enumType: PromotionScope::class)]
         private PromotionScope $scope,
         #[ORM\Column(length: 32, enumType: PromotionType::class)]
@@ -40,9 +38,11 @@ class Promotion extends AbstractEntity implements SoftDeletableInterface
         #[ORM\Column]
         private int $value,
         #[ORM\Column]
-        private int $priority = 0,
-        #[ORM\Column]
         private \DateTimeImmutable $startsAt,
+        #[ORM\Column(type: 'text', nullable: true)]
+        private ?string $description = null,
+        #[ORM\Column]
+        private int $priority = 0,
         #[ORM\Column(nullable: true)]
         private ?\DateTimeImmutable $endsAt = null,
         #[ORM\Column]

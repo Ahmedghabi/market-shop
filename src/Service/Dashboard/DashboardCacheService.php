@@ -26,10 +26,20 @@ final readonly class DashboardCacheService
     /** @return array<string, mixed> */
     public function boutique(string $boutiqueId, callable $loader): array
     {
-        return $this->cache->get("shop.{$boutiqueId}.dashboard", function (ItemInterface $item) use ($loader): array {
+        return $this->cache->get("shop.v2.{$boutiqueId}.dashboard", function (ItemInterface $item) use ($loader): array {
             $item->expiresAfter(self::TTL);
 
             return $loader();
         });
+    }
+
+    public function clearPlatform(): void
+    {
+        $this->cache->delete('platform.dashboard');
+    }
+
+    public function clearBoutique(string $boutiqueId): void
+    {
+        $this->cache->delete("shop.v2.{$boutiqueId}.dashboard");
     }
 }

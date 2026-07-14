@@ -3,6 +3,8 @@
 namespace App\EventSubscriber;
 
 use App\Enum\BoutiqueStatus;
+use App\Repository\BoutiqueRepository;
+use App\Security\BoutiqueContext;
 use App\Service\Boutique\SubdomainResolver;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -18,13 +20,16 @@ final class BoutiqueRequestSubscriber implements EventSubscriberInterface
         private SubdomainResolver $resolver,
         private AuthorizationCheckerInterface $auth,
         private TokenStorageInterface $tokenStorage,
+        private BoutiqueRepository $boutiques,
+        private BoutiqueContext $boutiqueContext,
     ) {
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['resolveBoutique', 10],
+            // Run after the firewall so admin requests can be distinguished from public requests.
+            KernelEvents::REQUEST => ['resolveBoutique', 0],
         ];
     }
 
@@ -50,6 +55,12 @@ final class BoutiqueRequestSubscriber implements EventSubscriberInterface
 
         $boutique = $this->resolver->resolveFromRequest($request);
         if (null === $boutique) {
+            $identifier = $request->query->get('boutiqueSlug') ?? $request->query->get('boutiqueId');
+            if (is_string($identifier) && '' !== $identifier) {
+                $boutique = $this->boutiques->findBySlugOrId($identifier);
+            }
+        }
+        if (null === $boutique) {
             return;
         }
 
@@ -57,6 +68,9 @@ final class BoutiqueRequestSubscriber implements EventSubscriberInterface
         $request->attributes->set('_boutique_id', $boutique->getId());
 
         $isAdmin = $this->isAuthenticatedAdmin();
+        if ($isAdmin && !$this->boutiqueContext->canAccessBoutique($boutique)) {
+            throw new AccessDeniedHttpException('Accès à cette boutique refusé.');
+        }
         $status = $boutique->getStatus();
 
         // PENDING boutiques: only accessible by admins
@@ -76,6 +90,10 @@ final class BoutiqueRequestSubscriber implements EventSubscriberInterface
 
         // ARCHIVED boutiques: not accessible
         if (BoutiqueStatus::Archived === $status && !$isAdmin) {
+            throw new NotFoundHttpException('Page non trouvée');
+        }
+
+        if (!$isAdmin && !$boutique->isVisiblePublicly()) {
             throw new NotFoundHttpException('Page non trouvée');
         }
     }

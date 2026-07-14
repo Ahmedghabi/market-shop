@@ -15,6 +15,7 @@ use App\Security\BoutiqueContext;
 use App\State\Common\BoutiqueWriteResolverTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\String\Slugger\AsciiSlugger;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /** @implements ProcessorInterface<BrandInput, BrandOutput|null> */
 final readonly class BrandProcessor implements ProcessorInterface
@@ -36,10 +37,12 @@ final readonly class BrandProcessor implements ProcessorInterface
 
         if ($operation instanceof Delete) {
             $brand = $this->brands->find((string) ($uriVariables['id'] ?? ''));
-            if ($brand instanceof Brand) {
-                $this->em->remove($brand);
-                $this->em->flush();
+            if (!$brand instanceof Brand || (string) $brand->getBoutique()->getId() !== (string) $boutique->getId()) {
+                throw new NotFoundHttpException('Brand not found');
             }
+
+            $this->em->remove($brand);
+            $this->em->flush();
 
             return null;
         }
@@ -49,6 +52,10 @@ final readonly class BrandProcessor implements ProcessorInterface
         }
 
         $brand = isset($uriVariables['id']) ? $this->brands->find((string) $uriVariables['id']) : null;
+
+        if (isset($uriVariables['id']) && (!$brand instanceof Brand || (string) $brand->getBoutique()->getId() !== (string) $boutique->getId())) {
+            throw new NotFoundHttpException('Brand not found');
+        }
 
         if (!$brand instanceof Brand) {
             $slug = $this->resolveSlug($data, $boutique, null);

@@ -10,6 +10,7 @@ use App\Entity\Review;
 use App\Repository\ProductRepository;
 use App\Repository\ReviewRepository;
 use App\Security\BoutiqueContext;
+use App\Service\Module\ModuleAccessService;
 use App\State\Common\BoutiqueAwareProviderTrait;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -25,6 +26,7 @@ final readonly class ReviewProvider implements ProviderInterface
         private BoutiqueContext $context,
         private TokenStorageInterface $tokenStorage,
         private Security $security,
+        private ModuleAccessService $moduleAccess,
     ) {
     }
 
@@ -67,6 +69,10 @@ final readonly class ReviewProvider implements ProviderInterface
         $token = $this->tokenStorage->getToken();
         $isAuthenticated = null !== $token && $token->getUser();
         $isAdmin = $isAuthenticated && $this->context->canAccessBoutique($boutique);
+
+        if (!$isAdmin && !$this->moduleAccess->isModuleEnabled('reviews', $boutique)) {
+            return [];
+        }
 
         if (null !== $productId) {
             $product = $this->products->findBySlugOrId($productId, $boutique);

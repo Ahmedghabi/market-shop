@@ -5,9 +5,13 @@ namespace App\State\Coupon;
 use App\Dto\Coupon\CouponOutput;
 use App\Entity\Coupon;
 use App\Repository\CouponRepository;
+use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\State\Common\BoutiqueAwareProviderTrait;
+use App\Repository\BoutiqueRepository;
+use App\Security\BoutiqueContext;
+use App\Entity\Boutique;
 
 final class CouponProvider implements ProviderInterface
 {
@@ -15,13 +19,20 @@ final class CouponProvider implements ProviderInterface
 
     public function __construct(
         private CouponRepository $coupons,
+        private BoutiqueRepository $boutiques,
+        private BoutiqueContext $context,
     ) {
     }
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?CouponOutput
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): CouponOutput|array|null
     {
+        if ($operation instanceof GetCollection) {
+            return $this->getCollection($operation, $uriVariables, $context);
+        }
+
         $coupon = $this->coupons->find($uriVariables['id'] ?? null);
-        if (!$coupon instanceof Coupon) {
+        $boutique = $this->resolveBoutiqueFromRequest($context, $uriVariables);
+        if (!$coupon instanceof Coupon || !$boutique instanceof Boutique || (string) $coupon->getBoutique()->getId() !== (string) $boutique->getId()) {
             return null;
         }
 
@@ -36,7 +47,7 @@ final class CouponProvider implements ProviderInterface
             return [];
         }
 
-        $coupons = $this->coupons->findByBoutique($boutique);
+        $coupons = $this->coupons->findByBoutique((string) $boutique->getId());
 
         return array_map($this->toOutput(...), $coupons);
     }

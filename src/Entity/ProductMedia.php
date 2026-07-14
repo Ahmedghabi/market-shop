@@ -16,7 +16,7 @@ class ProductMedia extends AbstractEntity
         #[ORM\Column(length: 32)]
         private string $type = 'IMAGE',
         #[ORM\Column(length: 255)]
-        private string $filePath,
+        private string $filePath = '',
         #[ORM\Column]
         private int $position = 0,
         #[ORM\Column(length: 255, nullable: true)]

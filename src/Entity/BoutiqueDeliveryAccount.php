@@ -5,6 +5,14 @@ namespace App\Entity;
 use App\Repository\BoutiqueDeliveryAccountRepository;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * Per-boutique credentials for a delivery company ("DeliveryCredential").
+ *
+ * Supports several auth shapes (login/password, API key, token, secret, custom
+ * base URL) so it can feed any DeliveryProviderInterface connector. Sensitive
+ * fields are stored pre-encrypted by EncryptionService; this entity never
+ * decrypts anything itself.
+ */
 #[ORM\Entity(repositoryClass: BoutiqueDeliveryAccountRepository::class)]
 #[ORM\Table(name: 'boutique_delivery_account')]
 #[ORM\UniqueConstraint(name: 'uniq_boutique_delivery', columns: ['boutique_id', 'delivery_company_id'])]
@@ -29,6 +37,16 @@ class BoutiqueDeliveryAccount extends AbstractEntity
         private ?string $lastError = null,
         #[ORM\Column]
         private bool $isActive = true,
+        #[ORM\Column(length: 512, nullable: true)]
+        private ?string $encryptedApiKey = null,
+        #[ORM\Column(length: 512, nullable: true)]
+        private ?string $encryptedToken = null,
+        #[ORM\Column(length: 512, nullable: true)]
+        private ?string $encryptedSecret = null,
+        #[ORM\Column(length: 255, nullable: true)]
+        private ?string $customBaseUrl = null,
+        #[ORM\Column]
+        private bool $isDefault = false,
         #[ORM\Column]
         private \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
         #[ORM\Column(nullable: true)]
@@ -61,7 +79,62 @@ class BoutiqueDeliveryAccount extends AbstractEntity
     {
         $this->encryptedLogin = $login;
         $this->encryptedPassword = $password;
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->touch();
+    }
+
+    public function getEncryptedApiKey(): ?string
+    {
+        return $this->encryptedApiKey;
+    }
+
+    public function setEncryptedApiKey(?string $encryptedApiKey): void
+    {
+        $this->encryptedApiKey = $encryptedApiKey;
+        $this->touch();
+    }
+
+    public function getEncryptedToken(): ?string
+    {
+        return $this->encryptedToken;
+    }
+
+    public function setEncryptedToken(?string $encryptedToken): void
+    {
+        $this->encryptedToken = $encryptedToken;
+        $this->touch();
+    }
+
+    public function getEncryptedSecret(): ?string
+    {
+        return $this->encryptedSecret;
+    }
+
+    public function setEncryptedSecret(?string $encryptedSecret): void
+    {
+        $this->encryptedSecret = $encryptedSecret;
+        $this->touch();
+    }
+
+    public function getCustomBaseUrl(): ?string
+    {
+        return $this->customBaseUrl;
+    }
+
+    public function setCustomBaseUrl(?string $customBaseUrl): void
+    {
+        $this->customBaseUrl = $customBaseUrl;
+        $this->touch();
+    }
+
+    public function isDefault(): bool
+    {
+        return $this->isDefault;
+    }
+
+    public function setIsDefault(bool $isDefault): void
+    {
+        $this->isDefault = $isDefault;
+        $this->touch();
     }
 
     public function isVerified(): bool
@@ -74,7 +147,7 @@ class BoutiqueDeliveryAccount extends AbstractEntity
         $this->isVerified = true;
         $this->verifiedAt = new \DateTimeImmutable();
         $this->lastError = null;
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->touch();
     }
 
     public function markAsUnverified(?string $error = null): void
@@ -82,7 +155,7 @@ class BoutiqueDeliveryAccount extends AbstractEntity
         $this->isVerified = false;
         $this->verifiedAt = null;
         $this->lastError = $error;
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->touch();
     }
 
     public function getVerifiedAt(): ?\DateTimeImmutable
@@ -103,7 +176,7 @@ class BoutiqueDeliveryAccount extends AbstractEntity
     public function setActive(bool $isActive): void
     {
         $this->isActive = $isActive;
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->touch();
     }
 
     public function getCreatedAt(): \DateTimeImmutable
@@ -114,5 +187,10 @@ class BoutiqueDeliveryAccount extends AbstractEntity
     public function getUpdatedAt(): ?\DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    private function touch(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
     }
 }

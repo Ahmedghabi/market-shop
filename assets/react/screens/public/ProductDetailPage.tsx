@@ -1,9 +1,18 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { appIcons } from '../../icons/fontAwesome';
 import { Badge, Button, Card } from '../../components/ui';
+import { CookieConsentModal } from '../../components/CookieConsentModal';
+import { ImageWithFallback } from '../../components/ImageWithFallback';
 import { ReviewSection } from '../../components/ReviewSection';
-import { authHeaders, boutiqueLink, resolveBoutiqueSlug } from './boutiqueRouting';
+import { authHeaders, boutiqueLink, boutiqueQuery, resolveBoutiqueSlug } from './boutiqueRouting';
+import { useCartAdd } from './storefront/useCartAdd';
+import { CartSheet, type CartItem as CartSheetItem } from './storefront/CartSheet';
+import { StorefrontHeader } from './storefront/StorefrontHeader';
+import type { StoreProduct } from './storefront/ProductCard';
+import type { StoreBoutique } from './storefront/StorefrontTheme';
+import { applyStorefrontTheme, resetStorefrontTheme, type StorefrontThemeData } from '../../theme/storefrontThemeRoot';
 
 type ProductItem = {
   id: string;
@@ -21,30 +30,93 @@ type ProductItem = {
   categoryName: string | null;
 };
 
-type BoutiqueItem = {
+type BoutiqueItem = StorefrontThemeData & {
   id: string;
   name: string;
   slug: string;
   primaryColor: string;
+  reviewsEnabled?: boolean;
+  coverImage?: string | null;
+};
+
+type CartOutput = {
+  currency: string;
+  items: Array<{
+    id: string;
+    productId: string | null;
+    productName: string | null;
+    quantity: number;
+    unitPriceCents: number;
+  }>;
 };
 
 export function ProductDetailPage({ title }: { title: string }) {
-  const pathMatch = window.location.pathname.match(/^\/boutiques\/([^/]+)\/products\/([^/]+)/);
-  const boutiqueSlug = resolveBoutiqueSlug(/^\/boutiques\/([^/]+)\/products\/[^/]+/);
-  const productSlug = pathMatch?.[2] ?? window.location.pathname.match(/^\/products\/([^/]+)/)?.[1] ?? '';
+  const pathMatch = window.location.pathname.match(/^\/boutiques\/([^/]+)\/(?:produit|products)\/([^/]+)/);
+  const boutiqueSlug = resolveBoutiqueSlug(/^\/boutiques\/([^/]+)\/(?:produit|products)\/[^/]+/);
+  const productSlug = pathMatch?.[2] ?? window.location.pathname.match(/^\/(?:produit|products)\/([^/]+)/)?.[1] ?? '';
+  window.__boutiqueSlug__ = boutiqueSlug;
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [boutique, setBoutique] = useState<BoutiqueItem | null>(null);
+  const [cartItems, setCartItems] = useState<CartSheetItem[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const { add: addToCart, consentOpen, acceptConsent, error: cartError } = useCartAdd({
+    boutiqueSlug,
+    onAdded: () => { window.location.href = boutiqueLink('/cart'); },
+  });
+
+  async function refreshCart(): Promise<void> {
+    const response = await fetch(`/api/cart${boutiqueQuery(boutiqueSlug)}`, { headers: authHeaders() });
+    if (!response.ok) return;
+
+    const payload = await response.json() as CartOutput;
+    setCartItems(payload.items
+      .filter((item) => item.productId !== null)
+      .map((item) => ({
+        product: {
+          id: item.productId as string,
+          name: item.productName ?? 'Produit',
+          slug: '',
+          priceCents: item.unitPriceCents,
+          currency: payload.currency,
+          images: [],
+        },
+        qty: item.quantity,
+      })));
+  }
+
+  async function setCartQuantity(itemId: string, nextQuantity: number): Promise<void> {
+    if (nextQuantity < 1) return;
+    const response = await fetch(`/api/cart/items/${itemId}${boutiqueQuery(boutiqueSlug)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json', ...(authHeaders() ?? {}) },
+      body: JSON.stringify({ quantity: nextQuantity }),
+    });
+    if (response.ok) await refreshCart();
+  }
+
+  async function removeCartItem(itemId: string): Promise<void> {
+    const response = await fetch(`/api/cart/items/${itemId}${boutiqueQuery(boutiqueSlug)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (response.ok) await refreshCart();
+  }
 
   useEffect(() => {
     if (!boutiqueSlug || !productSlug) return;
     const headers = authHeaders();
-    fetch(`/api/boutiques/${boutiqueSlug}`, { headers })
+      void refreshCart();
+      fetch(`/api/boutiques/${boutiqueSlug}`, { headers })
       .then((response) => response.ok ? response.json() : null)
-      .then(setBoutique)
+      .then((data) => {
+        if (!data) return;
+
+        applyStorefrontTheme(data);
+        setBoutique({ ...data, reviewsEnabled: data.reviewsEnabled === true });
+      })
       .catch(() => {});
 
-    fetch(`/api/products/${productSlug}`, { headers })
+     fetch(`/api/products/${productSlug}${boutiqueQuery(boutiqueSlug)}`, { headers })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         if (data) {
@@ -53,9 +125,11 @@ export function ProductDetailPage({ title }: { title: string }) {
             shortDescription: data.shortDescription ?? null,
             description: data.description ?? null,
           } as ProductItem);
+          fetch(`/api/products/${data.id}/view?boutiqueSlug=${encodeURIComponent(boutiqueSlug)}`, { method: 'POST' }).catch(() => {});
         }
       })
       .catch(() => {});
+    return resetStorefrontTheme;
   }, [boutiqueSlug, productSlug]);
 
   if (!product) {
@@ -75,35 +149,40 @@ export function ProductDetailPage({ title }: { title: string }) {
     ? Math.round((1 - product.sellingPrice / product.comparePrice) * 100)
     : 0;
 
-  async function handleAddToCart() {
-    if (!boutique) {
-      alert('Boutique introuvable.');
-      return;
-    }
-
-    try {
-      await fetch('/api/cart/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product!.id, quantity }),
-      });
-      window.location.href = boutiqueLink('/cart');
-    } catch {
-      alert('Erreur lors de l\'ajout au panier.');
-    }
+  function handleAddToCart(): void {
+    if (!product || !boutique) return;
+    const storeProduct: StoreProduct = {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      priceCents: product.sellingPrice,
+      currency: product.currency,
+      images: product.images.map((image) => ({ url: image.largeUrl ?? image.url, alt: image.alt })),
+    };
+    addToCart(storeProduct, quantity);
   }
 
   return (
     <main className="ds-shell">
+      {boutique && (
+        <StorefrontHeader
+          boutique={boutique as StoreBoutique}
+          cartItems={cartItems}
+          onSetCartQty={(id, qty) => { void setCartQuantity(id, qty); }}
+          onRemoveCartItem={(id) => { void removeCartItem(id); }}
+        />
+      )}
+      <CookieConsentModal open={consentOpen} onAccept={acceptConsent} />
+      {cartError && <div role="alert" className="fixed bottom-5 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-xl">{cartError}</div>}
       <section className="ds-page py-8 md:py-12">
         <Card className="overflow-hidden p-0">
           <div className="grid gap-0 lg:grid-cols-2">
-            <div className="bg-[color:var(--ds-surface-container)]">
+            <div className="overflow-hidden bg-[color:var(--ds-surface-container)]">
               {product.images.length > 0 ? (
-                <img
-                  src={product.images[0].largeUrl ?? product.images[0].url}
-                  alt={product.images[0].alt ?? product.name}
-                  className="h-full w-full object-cover max-h-[500px]"
+                  <ImageWithFallback
+                    src={product.images[0].largeUrl ?? product.images[0].url}
+                    alt={product.images[0].alt ?? product.name}
+                    className="h-full w-full object-cover max-h-[500px]"
                 />
               ) : (
                 <div className="flex h-full min-h-[300px] items-center justify-center text-[color:var(--ds-on-surface-variant)]">
@@ -144,9 +223,22 @@ export function ProductDetailPage({ title }: { title: string }) {
 
               <div className="mt-8 flex items-center gap-4">
                 <div className="flex items-center rounded-xl border border-[color:var(--ds-outline-variant)]">
-                  <button type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-                  <span className="min-w-[3rem] text-center font-semibold">{quantity}</span>
-                  <button type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(quantity + 1)}>+</button>
+                  <motion.button whileTap={{ scale: 0.9 }} type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</motion.button>
+                  <span className="min-w-[3rem] text-center font-semibold overflow-hidden">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={quantity}
+                        initial={{ y: 8, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -8, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="inline-block"
+                      >
+                        {quantity}
+                      </motion.span>
+                    </AnimatePresence>
+                  </span>
+                  <motion.button whileTap={{ scale: 0.9 }} type="button" className="px-4 py-2 text-lg" onClick={() => setQuantity(quantity + 1)}>+</motion.button>
                 </div>
                 <Button variant="primary" className="flex-1" onClick={handleAddToCart}>
                   <FontAwesomeIcon icon={appIcons.products} /> Ajouter au panier
@@ -162,9 +254,11 @@ export function ProductDetailPage({ title }: { title: string }) {
         </Card>
       </section>
 
-      <section className="ds-page pb-16">
-        <ReviewSection boutiqueSlug={boutiqueSlug} productId={product.id} />
-      </section>
+      {boutique?.reviewsEnabled === true && (
+        <section className="ds-page pb-16">
+          <ReviewSection boutiqueSlug={boutiqueSlug} productId={product.id} />
+        </section>
+      )}
     </main>
   );
 }

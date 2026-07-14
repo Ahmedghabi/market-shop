@@ -16,4 +16,7 @@ enum WebhookEventType: string
     case RefundProcessed = 'refund.processed';
     case CustomerCreated = 'customer.created';
     case SubscriptionActivated = 'subscription.activated';
+    case LoyaltyPointsEarned = 'loyalty.points_earned';
+    case LoyaltyPointsRedeemed = 'loyalty.points_redeemed';
+    case LoyaltyPointsExpiring = 'loyalty.points_expiring';
 }

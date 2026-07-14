@@ -29,6 +29,9 @@ class Conversation extends AbstractEntity
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $guestPhone = null;
 
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $guestAccessToken = null;
+
     #[ORM\Column]
     private bool $active = true;
 
@@ -88,6 +91,25 @@ class Conversation extends AbstractEntity
     public function setGuestPhone(?string $guestPhone): void
     {
         $this->guestPhone = $guestPhone;
+    }
+
+    public function getGuestAccessToken(): ?string
+    {
+        return $this->guestAccessToken;
+    }
+
+    public function generateGuestAccessToken(): string
+    {
+        $this->guestAccessToken = bin2hex(random_bytes(32));
+
+        return $this->guestAccessToken;
+    }
+
+    public function isGuestAccessTokenValid(?string $token): bool
+    {
+        return null !== $this->guestAccessToken
+            && null !== $token
+            && hash_equals($this->guestAccessToken, $token);
     }
 
     public function isActive(): bool

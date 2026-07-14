@@ -34,7 +34,7 @@ export function QuoteWizardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Input className="w-20" defaultValue={1} type="number" />
-                    <Badge tone="neutral">245,90 €</Badge>
+                    <Badge tone="neutral">245,90 DT</Badge>
                   </div>
                 </div>
               ))}
@@ -53,7 +53,7 @@ export function QuoteWizardPage() {
             </Card>
             <Card>
               <h2 className="text-xl font-bold">Récapitulatif</h2>
-              <p className="mt-2 text-sm text-[color:var(--ds-on-surface-variant)]">Estimation totale: 423,90 €</p>
+              <p className="mt-2 text-sm text-[color:var(--ds-on-surface-variant)]">Estimation totale: 423,90 DT</p>
               <Button variant="primary" className="mt-5 w-full">Envoyer la demande</Button>
             </Card>
           </div>

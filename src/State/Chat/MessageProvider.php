@@ -5,14 +5,21 @@ namespace App\State\Chat;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\Chat\MessageResource;
+use App\Entity\Conversation;
 use App\Entity\Message;
+use App\Repository\ConversationRepository;
 use App\Repository\MessageRepository;
+use App\Service\Chat\ChatAccessService;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /** @implements ProviderInterface<MessageResource> */
 final class MessageProvider implements ProviderInterface
 {
     public function __construct(
         private MessageRepository $repository,
+        private ConversationRepository $conversationRepository,
+        private ChatAccessService $access,
     ) {
     }
 
@@ -22,6 +29,15 @@ final class MessageProvider implements ProviderInterface
 
         if (null === $conversationId) {
             return null;
+        }
+
+        $conversation = $this->conversationRepository->find($conversationId);
+        if (!$conversation instanceof Conversation) {
+            return null;
+        }
+
+        if (!$this->access->canAccessConversation($conversation, $this->getGuestToken($context))) {
+            throw new AccessDeniedHttpException('Conversation access denied');
         }
 
         $id = $uriVariables['id'] ?? null;
@@ -39,6 +55,13 @@ final class MessageProvider implements ProviderInterface
         );
 
         return array_map(fn (Message $m) => $this->mapSingle($m), $items);
+    }
+
+    private function getGuestToken(array $context): ?string
+    {
+        $request = $context['request'] ?? null;
+
+        return $request instanceof Request ? $request->headers->get('X-Guest-Chat-Token') : null;
     }
 
     private function mapSingle(?Message $message): ?MessageResource

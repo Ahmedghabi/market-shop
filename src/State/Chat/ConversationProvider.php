@@ -7,7 +7,10 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\Chat\ConversationResource;
 use App\Entity\Conversation;
 use App\Repository\ConversationRepository;
+use App\Service\Chat\ChatAccessService;
 use App\State\Common\BoutiqueAwareProviderTrait;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /** @implements ProviderInterface<ConversationResource> */
 final class ConversationProvider implements ProviderInterface
@@ -16,24 +19,38 @@ final class ConversationProvider implements ProviderInterface
 
     public function __construct(
         private ConversationRepository $repository,
+        private ChatAccessService $access,
     ) {
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ConversationResource|array|null
     {
-        $boutique = $this->resolveBoutiqueFromRequest($context);
-
-        if (!$boutique) {
-            return null;
-        }
-
         $id = $uriVariables['id'] ?? null;
 
         if (null !== $id) {
-            return $this->mapSingle($this->repository->findOneBy([
-                'id' => $id,
-                'boutique' => $boutique,
-            ]));
+            $conversation = $this->repository->find($id);
+
+            if (!$conversation instanceof Conversation) {
+                return null;
+            }
+
+            if (!$this->access->canAccessConversation($conversation, $this->getGuestToken($context))) {
+                throw new AccessDeniedHttpException('Conversation access denied');
+            }
+
+            return $this->mapSingle($conversation);
+        }
+
+        if ($this->access->canManageAllConversations()) {
+            $items = $this->repository->findBy([], ['createdAt' => 'DESC']);
+
+            return array_map(fn (Conversation $c) => $this->mapSingle($c), $items);
+        }
+
+        $boutique = $this->resolveBoutiqueFromRequest($context);
+
+        if (!$boutique) {
+            return [];
         }
 
         $items = $this->repository->findBy(
@@ -42,6 +59,13 @@ final class ConversationProvider implements ProviderInterface
         );
 
         return array_map(fn (Conversation $c) => $this->mapSingle($c), $items);
+    }
+
+    private function getGuestToken(array $context): ?string
+    {
+        $request = $context['request'] ?? null;
+
+        return $request instanceof Request ? $request->headers->get('X-Guest-Chat-Token') : null;
     }
 
     private function mapSingle(?Conversation $conversation): ?ConversationResource
@@ -57,6 +81,7 @@ final class ConversationProvider implements ProviderInterface
         $resource->guestName = $conversation->getGuestName();
         $resource->guestEmail = $conversation->getGuestEmail();
         $resource->guestPhone = $conversation->getGuestPhone();
+        $resource->guestAccessToken = null;
         $resource->active = $conversation->isActive();
         $resource->createdAt = $conversation->getCreatedAt()->format('c');
         $resource->updatedAt = $conversation->getUpdatedAt()?->format('c');

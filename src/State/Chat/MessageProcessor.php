@@ -10,9 +10,12 @@ use App\Entity\Message;
 use App\Event\MessageSentEvent;
 use App\Repository\ConversationRepository;
 use App\Repository\MessageRepository;
+use App\Service\Chat\ChatAccessService;
 use App\Service\ImageService;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -25,6 +28,7 @@ final class MessageProcessor implements ProcessorInterface
         private EventDispatcherInterface $eventDispatcher,
         private ImageService $imageService,
         private TokenStorageInterface $tokenStorage,
+        private ChatAccessService $access,
         private string $uploadDir,
     ) {
     }
@@ -38,11 +42,11 @@ final class MessageProcessor implements ProcessorInterface
             throw new NotFoundHttpException('Conversation not found');
         }
 
-        $token = $this->tokenStorage->getToken();
-        $user = $token?->getUser();
-        $isAdmin = null !== $user && in_array('ROLE_BOUTIQUE_ADMIN', $user->getRoles(), true);
+        if (!$this->access->canAccessConversation($conversation, $this->getGuestToken($context))) {
+            throw new AccessDeniedHttpException('Conversation access denied');
+        }
 
-        $senderType = $isAdmin ? 'admin' : ($data->senderType ?? 'user');
+        $senderType = $this->access->isAdminResponder() ? 'admin' : 'user';
 
         $message = new Message($conversation, $senderType, $data->content ?? '');
 
@@ -67,13 +71,17 @@ final class MessageProcessor implements ProcessorInterface
         $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'], true);
 
         if ($isImage) {
-            $paths = $this->imageService->uploadAndResize($file, 'chat');
+            try {
+                $paths = $this->imageService->uploadAndResize($file, 'chat');
 
-            return [
-                'url' => $paths['largeUrl'],
-                'thumbnailUrl' => $paths['smallUrl'],
-                'type' => 'image',
-            ];
+                return [
+                    'url' => $paths['largeUrl'],
+                    'thumbnailUrl' => $paths['smallUrl'],
+                    'type' => 'image',
+                ];
+            } catch (\Throwable) {
+                // Some deployments do not ship GD/Imagick. Keep chat attachment upload usable.
+            }
         }
 
         $filename = sprintf('%s.%s', bin2hex(random_bytes(16)), $extension);
@@ -106,5 +114,12 @@ final class MessageProcessor implements ProcessorInterface
         $resource->readAt = $message->getReadAt()?->format('c');
 
         return $resource;
+    }
+
+    private function getGuestToken(array $context): ?string
+    {
+        $request = $context['request'] ?? null;
+
+        return $request instanceof Request ? $request->headers->get('X-Guest-Chat-Token') : null;
     }
 }

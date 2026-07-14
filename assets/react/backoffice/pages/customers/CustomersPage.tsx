@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Customer } from '../../types';
+import type { Customer, SubscriptionSummary } from '../../types';
 import { useApiClient, useApiData } from '../../hooks/useApi';
 import { Card, CardHeader, CardBody } from '../../components/Card';
 import { Badge } from '../../components/Badge';
@@ -10,11 +10,13 @@ import { FormField } from '../../components/FormField';
 import { FiltersBar } from '../../components/FiltersBar';
 import { LoadingState, EmptyState, ErrorState } from '../../components/States';
 import { PageHeader } from '../../layout/Shell';
+import { useBoutique } from '../../hooks/useBoutique';
 
 const PAGE_SIZE = 20;
 
 export function CustomersPage({ getAccessToken }: { getAccessToken: () => string | null }) {
   const api = useApiClient(getAccessToken);
+  const { boutique } = useBoutique();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
@@ -27,6 +29,9 @@ export function CustomersPage({ getAccessToken }: { getAccessToken: () => string
   }, [api, page, search]);
 
   const { data, isLoading, error, refresh } = useApiData(fetchData, [page, search]);
+  const fetchSummary = useCallback(async () => api.get<SubscriptionSummary>('/subscription/summary'), [api]);
+  const { data: summary } = useApiData(fetchSummary, [boutique?.id]);
+  const customerQuota = summary?.quotas?.find((q) => q.code === 'max_customers');
   const customers = data?.member ?? [];
   const totalItems = data?.totalItems ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -56,6 +61,20 @@ export function CustomersPage({ getAccessToken }: { getAccessToken: () => string
     <div>
       <PageHeader title="Clients" description="Gérez votre base clients" />
       <Card>
+        {customerQuota && (
+          <div style={{
+            padding: '10px 20px', background: 'var(--bo-surface)', borderBottom: '1px solid var(--bo-border)',
+            fontSize: 13, color: 'var(--bo-text-secondary)', display: 'flex', gap: 16, alignItems: 'center',
+          }}>
+            <span>Clients : <strong>{customerQuota.usage}</strong> / {customerQuota.limit ?? '∞'}</span>
+            {customerQuota.remaining !== null && (
+              <span style={{ color: customerQuota.remaining <= 0 ? 'var(--bo-warning)' : 'var(--bo-success)' }}>
+                ({customerQuota.remaining <= 0 ? 'quota atteint' : customerQuota.remaining + ' restant' + (customerQuota.remaining > 1 ? 's' : '')})
+              </span>
+            )}
+            {customerQuota.limit === null && <span style={{ color: 'var(--bo-success)' }}>Illimité</span>}
+          </div>
+        )}
         <CardHeader>
           <input className="bo-input" style={{ maxWidth: 320 }} placeholder="Rechercher par email..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           <span style={{ fontSize: 13, color: 'var(--bo-text-muted)' }}>{totalItems} client{totalItems > 1 ? 's' : ''}</span>

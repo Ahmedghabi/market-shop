@@ -15,8 +15,11 @@ use App\Repository\CategoryRepository;
 use App\Security\BoutiqueContext;
 use App\Service\FrontOfficeCacheService;
 use App\Service\SeoService;
+use App\Service\Subscription\SubscriptionManager;
 use App\State\Common\BoutiqueWriteResolverTrait;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /** @implements ProcessorInterface<CategoryInput, CategoryOutput|null> */
@@ -34,6 +37,7 @@ final readonly class CategoryProcessor implements ProcessorInterface
         private CategoryProvider $provider,
         private SeoService $seo,
         private FrontOfficeCacheService $cache,
+        private SubscriptionManager $subscriptionManager,
     ) {
         $this->slugger = new AsciiSlugger();
     }
@@ -44,11 +48,13 @@ final readonly class CategoryProcessor implements ProcessorInterface
 
         if ($operation instanceof Delete) {
             $category = $this->categories->find((string) ($uriVariables['id'] ?? ''));
-            if ($category instanceof Category) {
-                $this->em->remove($category);
-                $this->em->flush();
-                $this->cache->invalidateSeo((string) $boutique->getId());
+            if (!$category instanceof Category || (string) $category->getBoutique()->getId() !== (string) $boutique->getId()) {
+                throw new NotFoundHttpException('Category not found');
             }
+
+            $this->em->remove($category);
+            $this->em->flush();
+            $this->cache->invalidateSeo((string) $boutique->getId());
 
             return null;
         }
@@ -58,6 +64,13 @@ final readonly class CategoryProcessor implements ProcessorInterface
         }
 
         $category = isset($uriVariables['id']) ? $this->categories->find((string) $uriVariables['id']) : null;
+        if (isset($uriVariables['id']) && !$category instanceof Category) {
+            throw new NotFoundHttpException('Category not found');
+        }
+
+        if ($category instanceof Category && (string) $category->getBoutique()->getId() !== (string) $boutique->getId()) {
+            throw new NotFoundHttpException('Category not found');
+        }
 
         if (!$category instanceof Category) {
             $slug = $this->resolveSlug($data, $boutique, null);
@@ -71,6 +84,10 @@ final readonly class CategoryProcessor implements ProcessorInterface
             $slug = $this->resolveSlug($data, $boutique, (string) $category->getId());
             $category->setName($data->name);
             $category->setSlug($slug);
+        }
+
+        if ($data->isActive && (!$category instanceof Category || !$category->isActive()) && !$this->subscriptionManager->canActivateCategory($boutique)) {
+            throw new BadRequestHttpException('Quota catégories actives atteint. Souscrivez à une extension ou changez de plan.');
         }
 
         $category->setDescription($data->description);

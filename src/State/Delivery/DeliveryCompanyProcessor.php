@@ -6,10 +6,12 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Delivery\DeliveryCompanyInput;
-use App\Dto\Delivery\DeliveryCompanyOutput;
 use App\Entity\DeliveryCompany;
+use App\Enum\DeliveryAuthType;
 use App\Repository\DeliveryCompanyRepository;
+use App\Service\Audit\AuditLogService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class DeliveryCompanyProcessor implements ProcessorInterface
@@ -17,10 +19,13 @@ final class DeliveryCompanyProcessor implements ProcessorInterface
     public function __construct(
         private readonly DeliveryCompanyRepository $repository,
         private readonly EntityManagerInterface $em,
+        private readonly DeliveryCompanyProvider $provider,
+        private readonly AuditLogService $auditLog,
+        private readonly Security $security,
     ) {
     }
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ?DeliveryCompanyOutput
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {
         if ($operation instanceof Delete) {
             $entity = $this->findEntity((string) $uriVariables['id']);
@@ -33,23 +38,28 @@ final class DeliveryCompanyProcessor implements ProcessorInterface
         if (isset($uriVariables['id'])) {
             $entity = $this->findEntity((string) $uriVariables['id']);
             $this->applyInput($entity, $data);
+            $this->audit('delivery_company.update', $entity);
         } else {
             $entity = new DeliveryCompany(
                 name: $data->name,
                 slug: $data->slug,
                 baseUrl: $data->baseUrl,
-                authEndpoint: $data->authEndpoint,
-                submitOrderEndpoint: $data->submitOrderEndpoint,
-                trackEndpoint: $data->trackEndpoint,
+                provider: $data->provider,
+                authType: DeliveryAuthType::from($data->authType),
+                authConfig: $data->authConfig,
+                mappingConfig: $data->mappingConfig,
+                parametersConfig: $data->parametersConfig,
+                logoUrl: $data->logoUrl,
                 description: $data->description,
                 isActive: $data->isActive,
             );
             $this->em->persist($entity);
+            $this->audit('delivery_company.create', $entity);
         }
 
         $this->em->flush();
 
-        return $this->toOutput($entity);
+        return $this->provider->toOutput($entity);
     }
 
     private function applyInput(DeliveryCompany $entity, DeliveryCompanyInput $input): void
@@ -57,9 +67,12 @@ final class DeliveryCompanyProcessor implements ProcessorInterface
         $entity->setName($input->name);
         $entity->setSlug($input->slug);
         $entity->setBaseUrl($input->baseUrl);
-        $entity->setAuthEndpoint($input->authEndpoint);
-        $entity->setSubmitOrderEndpoint($input->submitOrderEndpoint);
-        $entity->setTrackEndpoint($input->trackEndpoint);
+        $entity->setProvider($input->provider);
+        $entity->setAuthType(DeliveryAuthType::from($input->authType));
+        $entity->setAuthConfig($input->authConfig);
+        $entity->setMappingConfig($input->mappingConfig);
+        $entity->setParametersConfig($input->parametersConfig);
+        $entity->setLogoUrl($input->logoUrl);
         $entity->setDescription($input->description);
         $entity->setIsActive($input->isActive);
     }
@@ -74,19 +87,16 @@ final class DeliveryCompanyProcessor implements ProcessorInterface
         return $entity;
     }
 
-    private function toOutput(DeliveryCompany $entity): DeliveryCompanyOutput
+    private function audit(string $action, DeliveryCompany $company): void
     {
-        $output = new DeliveryCompanyOutput();
-        $output->id = (string) $entity->getId();
-        $output->name = $entity->getName();
-        $output->slug = $entity->getSlug();
-        $output->baseUrl = $entity->getBaseUrl();
-        $output->authEndpoint = $entity->getAuthEndpoint();
-        $output->submitOrderEndpoint = $entity->getSubmitOrderEndpoint();
-        $output->trackEndpoint = $entity->getTrackEndpoint();
-        $output->description = $entity->getDescription();
-        $output->isActive = $entity->isActive();
-
-        return $output;
+        $user = $this->security->getUser();
+        $this->auditLog->log(
+            actorEmail: $user?->getUserIdentifier() ?? 'system',
+            actorRole: 'ROLE_SUPER_ADMIN',
+            action: $action,
+            resourceType: 'DeliveryCompany',
+            resourceId: (string) $company->getId(),
+            details: ['name' => $company->getName(), 'provider' => $company->getProvider()],
+        );
     }
 }

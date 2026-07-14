@@ -34,6 +34,6 @@ final class ProductResource
     public ?string $sku = null;
     public ?string $description = null;
     public int $priceCents = 0;
-    public string $currency = 'EUR';
+    public string $currency = 'TND';
     public bool $active = true;
 }

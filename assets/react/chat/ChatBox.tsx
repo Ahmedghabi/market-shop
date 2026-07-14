@@ -10,6 +10,14 @@ type Message = {
   createdAt: string;
 };
 
+type GuestChatSession = {
+  conversationId: string;
+  guestAccessToken: string;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+};
+
 type ChatBoxProps = {
   boutiqueId: string;
   apiBaseUrl: string;
@@ -20,6 +28,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [guestAccessToken, setGuestAccessToken] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
@@ -31,6 +40,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cookieName = `hanooti_chat_${boutiqueId}`;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,6 +49,18 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, botTyping, scrollToBottom]);
+
+  useEffect(() => {
+    const session = readCookie<GuestChatSession>(cookieName);
+    if (!session?.conversationId || !session.guestAccessToken) return;
+
+    setConversationId(session.conversationId);
+    setGuestAccessToken(session.guestAccessToken);
+    setGuestName(session.guestName ?? '');
+    setGuestEmail(session.guestEmail ?? '');
+    setGuestPhone(session.guestPhone ?? '');
+    setShowForm(false);
+  }, [cookieName]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -82,6 +104,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
     try {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (guestAccessToken) headers['X-Guest-Chat-Token'] = guestAccessToken;
 
       const res = await fetch(
         `${apiBaseUrl}/conversations/${conversationId}/messages`,
@@ -119,6 +142,16 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
       if (res.ok) {
         const data = await res.json();
         setConversationId(data.id);
+        if (data.guestAccessToken) {
+          setGuestAccessToken(data.guestAccessToken);
+          writeCookie(cookieName, {
+            conversationId: data.id,
+            guestAccessToken: data.guestAccessToken,
+            guestName: guestName.trim(),
+            guestEmail: guestEmail.trim() || undefined,
+            guestPhone: guestPhone.trim() || undefined,
+          });
+        }
         setShowForm(false);
       }
     } catch { /* ignore */ } finally {
@@ -132,6 +165,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (guestAccessToken) headers['X-Guest-Chat-Token'] = guestAccessToken;
 
     try {
       await fetch(
@@ -154,9 +188,11 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('conversationId', conversationId);
 
       const uploadHeaders: Record<string, string> = {};
       if (token) uploadHeaders['Authorization'] = `Bearer ${token}`;
+      if (guestAccessToken) uploadHeaders['X-Guest-Chat-Token'] = guestAccessToken;
 
       const uploadRes = await fetch(`${apiBaseUrl}/chat/upload`, {
         method: 'POST',
@@ -169,6 +205,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (guestAccessToken) headers['X-Guest-Chat-Token'] = guestAccessToken;
 
       await fetch(
         `${apiBaseUrl}/conversations/${conversationId}/messages`,
@@ -205,7 +242,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
             height: '56px',
             borderRadius: '50%',
             border: 'none',
-            background: '#3525cd',
+             background: 'var(--sf-accent, var(--ds-primary, #111111))',
             color: '#fff',
             fontSize: '24px',
             cursor: 'pointer',
@@ -213,7 +250,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
           }}
           aria-label="Ouvrir le chat"
         >
-          💬
+          <span className="chat-launcher-emoji" aria-hidden="true">💬</span>
         </button>
       )}
 
@@ -233,7 +270,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '12px 16px',
-            background: '#3525cd',
+             background: 'var(--sf-accent, var(--ds-primary, #111111))',
             color: '#fff',
           }}>
             <strong>Support</strong>
@@ -299,7 +336,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
                     key={msg.id}
                     style={{
                       alignSelf: msg.senderType === 'user' ? 'flex-end' : 'flex-start',
-                      background: msg.senderType === 'user' ? '#3525cd' : '#f0f0f0',
+                       background: msg.senderType === 'user' ? 'var(--sf-accent, var(--ds-primary, #111111))' : '#f0f0f0',
                       color: msg.senderType === 'user' ? '#fff' : '#333',
                       padding: '8px 12px',
                       borderRadius: '12px',
@@ -317,7 +354,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
                             style={{ maxWidth: '100%', borderRadius: '8px' }}
                           />
                         ) : (
-                          <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: msg.senderType === 'user' ? '#fff' : '#3525cd' }}>
+                           <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: msg.senderType === 'user' ? '#fff' : 'var(--sf-accent, var(--ds-primary, #111111))' }}>
                             📎 Fichier joint
                           </a>
                         )}
@@ -396,7 +433,7 @@ export function ChatBox({ boutiqueId, apiBaseUrl, token }: ChatBoxProps) {
                   type="submit"
                   disabled={!content.trim() || uploading}
                   style={{
-                    background: '#3525cd',
+                     background: 'var(--sf-accent, var(--ds-primary, #111111))',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '20px',
@@ -427,7 +464,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const sendBtnStyle: React.CSSProperties = {
-  background: '#3525cd',
+  background: 'var(--sf-accent, var(--ds-primary, #111111))',
   color: '#fff',
   border: 'none',
   borderRadius: '8px',
@@ -436,3 +473,19 @@ const sendBtnStyle: React.CSSProperties = {
   fontSize: '14px',
   fontWeight: 600,
 };
+
+function readCookie<T>(name: string): T | null {
+  const cookie = document.cookie.split('; ').find((item) => item.startsWith(`${name}=`));
+  if (!cookie) return null;
+
+  try {
+    return JSON.parse(decodeURIComponent(cookie.slice(name.length + 1))) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeCookie(name: string, value: unknown) {
+  const maxAge = 60 * 60 * 24 * 30;
+  document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+}

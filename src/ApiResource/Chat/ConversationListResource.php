@@ -12,7 +12,7 @@ use App\State\Chat\ConversationListProvider;
         new GetCollection(
             uriTemplate: '/admin/conversations',
             provider: ConversationListProvider::class,
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
         ),
     ],
 )]

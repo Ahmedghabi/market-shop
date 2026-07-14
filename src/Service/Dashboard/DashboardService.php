@@ -3,6 +3,7 @@
 namespace App\Service\Dashboard;
 
 use App\Entity\Boutique;
+use App\Entity\Category;
 use App\Entity\Customer;
 use App\Entity\Order;
 use App\Entity\OrderItem;
@@ -16,6 +17,7 @@ use App\Enum\ProductStatus;
 use App\Enum\SubscriptionStatus;
 use App\Repository\BoutiqueRepository;
 use App\Repository\ReviewRepository;
+use App\Repository\ProductViewDailyRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class DashboardService
@@ -24,6 +26,7 @@ final readonly class DashboardService
         private EntityManagerInterface $em,
         private BoutiqueRepository $boutiques,
         private ReviewRepository $reviews,
+        private ProductViewDailyRepository $productViews,
         private DashboardCacheService $cache,
     ) {
     }
@@ -36,6 +39,7 @@ final readonly class DashboardService
             $monthStart = new \DateTimeImmutable('first day of this month 00:00:00');
             $lastMonthStart = $monthStart->modify('-1 month');
             $now = new \DateTimeImmutable();
+            $viewSince = $today->modify('-6 days');
 
             $totalBoutiques = $this->count(Boutique::class);
             $activeBoutiques = $this->count(Boutique::class, ['status' => BoutiqueStatus::Active]);
@@ -82,6 +86,11 @@ final readonly class DashboardService
                     'expired' => $expiredSubscriptions,
                 ],
                 'topBoutiques' => $this->topBoutiques(),
+                'viewStats' => [
+                    'days' => $this->productViews->findDailyTotals(null, $viewSince),
+                    'products' => $this->productViews->findDailyProductStats(null, $viewSince),
+                    'boutiques' => $this->productViews->findDailyBoutiqueStats(null, $viewSince),
+                ],
             ];
         });
     }
@@ -99,6 +108,7 @@ final readonly class DashboardService
             $weekStart = $today->modify('-6 days');
             $monthStart = new \DateTimeImmutable('first day of this month 00:00:00');
             $yearStart = new \DateTimeImmutable('first day of january 00:00:00');
+            $viewSince = $today->modify('-6 days');
 
             return [
                 'boutiqueId' => (string) $boutique->getId(),
@@ -108,6 +118,7 @@ final readonly class DashboardService
                     'salesMonthCents' => $this->sumOrdersForBoutique($boutique, $monthStart),
                     'salesYearCents' => $this->sumOrdersForBoutique($boutique, $yearStart),
                     'ordersToday' => $this->countOrdersForBoutiqueSince($boutique, $today),
+                    'ordersTotal' => $this->count(Order::class, ['boutique' => $boutique]),
                     'ordersPending' => $this->countOrdersForBoutiqueStatus($boutique, OrderStatus::Pending),
                     'ordersConfirmed' => $this->countOrdersForBoutiqueStatuses($boutique, [OrderStatus::Paid, OrderStatus::Completed]),
                     'ordersShipped' => $this->countOrdersForBoutiqueStatus($boutique, OrderStatus::Shipped),
@@ -116,12 +127,20 @@ final readonly class DashboardService
                     'customersTotal' => $this->count(Customer::class, ['boutique' => $boutique]),
                     'customersNew' => 0,
                     'productsActive' => $this->count(Product::class, ['boutique' => $boutique, 'status' => ProductStatus::Active]),
+                    'productsTotal' => $this->countNonDeletedForBoutique(Product::class, $boutique),
+                    'categoriesTotal' => $this->countNonDeletedForBoutique(Category::class, $boutique),
+                    'productViewsTotal' => $this->sumProductViewsForBoutique($boutique),
                     'productsOutOfStock' => $this->countStockForBoutique($boutique, 'out'),
                     'productsLowStock' => $this->countStockForBoutique($boutique, 'low'),
                     'averageRating' => $this->reviews->getAverageRatingByBoutique($boutique),
                     'reviewsCount' => $this->reviews->countByBoutique($boutique),
                 ],
                 'topProducts' => $this->topProductsForBoutique($boutique),
+                'viewStats' => [
+                    'days' => $this->productViews->findDailyTotals($boutique, $viewSince),
+                    'products' => $this->productViews->findDailyProductStats($boutique, $viewSince),
+                    'boutiques' => $this->productViews->findDailyBoutiqueStats($boutique, $viewSince),
+                ],
             ];
         });
     }
@@ -155,6 +174,30 @@ final readonly class DashboardService
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    private function countNonDeletedForBoutique(string $entity, Boutique $boutique): int
+    {
+        return (int) $this->em->createQueryBuilder()
+            ->select('COUNT(e.id)')
+            ->from($entity, 'e')
+            ->andWhere('e.boutique = :boutique')
+            ->andWhere('e.deletedAt IS NULL')
+            ->setParameter('boutique', $boutique)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    private function sumProductViewsForBoutique(Boutique $boutique): int
+    {
+        return (int) $this->em->createQueryBuilder()
+            ->select('COALESCE(SUM(p.viewsCount), 0)')
+            ->from(Product::class, 'p')
+            ->andWhere('p.boutique = :boutique')
+            ->andWhere('p.deletedAt IS NULL')
+            ->setParameter('boutique', $boutique)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     private function sumOrders(?\DateTimeImmutable $since = null, ?\DateTimeImmutable $until = null): int

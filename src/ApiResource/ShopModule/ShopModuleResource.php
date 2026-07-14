@@ -22,14 +22,14 @@ const BOUTIQUE_SHOP_MODULE_URI_VARIABLES = [
         new GetCollection(
             uriTemplate: '/boutiques/{boutiqueId}/modules',
             uriVariables: BOUTIQUE_SHOP_MODULE_URI_VARIABLES,
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             output: ShopModuleOutput::class,
             provider: ShopModuleProvider::class,
         ),
         new Post(
             uriTemplate: '/boutiques/{boutiqueId}/modules',
             uriVariables: BOUTIQUE_SHOP_MODULE_URI_VARIABLES,
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             read: false,
             output: ShopModuleOutput::class,
             processor: ShopModuleProcessor::class,
@@ -37,14 +37,14 @@ const BOUTIQUE_SHOP_MODULE_URI_VARIABLES = [
         new Get(
             uriTemplate: '/boutiques/{boutiqueId}/modules/{id}',
             uriVariables: BOUTIQUE_SHOP_MODULE_URI_VARIABLES + ['id' => new Link(schema: ['type' => 'string', 'format' => 'uuid'], property: 'id')],
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             output: ShopModuleOutput::class,
             provider: ShopModuleProvider::class,
         ),
         new Patch(
             uriTemplate: '/boutiques/{boutiqueId}/modules/{id}',
             uriVariables: BOUTIQUE_SHOP_MODULE_URI_VARIABLES + ['id' => new Link(schema: ['type' => 'string', 'format' => 'uuid'], property: 'id')],
-            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             output: ShopModuleOutput::class,
             processor: ShopModuleProcessor::class,
         ),

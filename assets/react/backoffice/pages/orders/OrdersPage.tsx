@@ -8,6 +8,7 @@ import { Badge } from '../../components/Badge';
 import { Pagination } from '../../components/Pagination';
 import { Modal } from '../../components/Modal';
 import { FormField } from '../../components/FormField';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { FiltersBar } from '../../components/FiltersBar';
 import { LoadingState, EmptyState, ErrorState } from '../../components/States';
 import { PageHeader } from '../../layout/Shell';
@@ -16,14 +17,14 @@ import { useNotification } from '../../hooks/useNotification';
 const PAGE_SIZE = 20;
 
 const statusStyle: Record<string, string> = {
-  pending: 'warning', confirmed: 'info', processing: 'info', shipped: 'success', delivered: 'success', cancelled: 'neutral', refunded: 'neutral',
+  draft: 'neutral', pending: 'warning', paid: 'info', completed: 'info', shipped: 'success', delivered: 'success', cancelled: 'neutral', refunded: 'neutral',
 };
 
 const statusLabels: Record<string, string> = {
-  pending: 'En attente', confirmed: 'Confirmée', processing: 'En cours', shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée', refunded: 'Remboursée',
+  draft: 'Brouillon', pending: 'En attente', paid: 'Confirmée', completed: 'Confirmée', shipped: 'Expédiée', delivered: 'Livrée', cancelled: 'Annulée', refunded: 'Remboursée',
 };
 
-export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | null }) {
+export function OrdersPage({ getAccessToken, userRoles = [] }: { getAccessToken: () => string | null; userRoles?: string[] }) {
   const api = useApiClient(getAccessToken);
   const { showNotice } = useNotification();
   const [page, setPage] = useState(1);
@@ -32,6 +33,10 @@ export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | 
   const [sortField, setSortField] = useState('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [orderToReject, setOrderToReject] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [actionOrderId, setActionOrderId] = useState<string | null>(null);
+  const isAdmin = userRoles.includes('ROLE_BOUTIQUE_ADMIN') || userRoles.includes('ROLE_SUPER_ADMIN');
 
   const fetchData = useCallback(async () => {
     const params = new URLSearchParams();
@@ -54,6 +59,36 @@ export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | 
     else { setSortField(field); setSortDir('asc'); }
   }
 
+  async function updateOrderStatus(order: Order, nextStatus: 'paid' | 'cancelled') {
+    setActionOrderId(order.id);
+    try {
+      await api.patch(`/orders/${order.id}`, { status: nextStatus });
+      showNotice(nextStatus === 'paid' ? 'Commande confirmée.' : 'Commande refusée.', 'success');
+      setOrderToReject(null);
+      setDetailOrder(null);
+      await refresh();
+    } catch (exception) {
+      showNotice(exception instanceof Error ? exception.message : 'Impossible de mettre à jour la commande.', 'error');
+    } finally {
+      setActionOrderId(null);
+    }
+  }
+
+  async function deleteOrder(order: Order) {
+    setActionOrderId(order.id);
+    try {
+      await api.delete(`/orders/${order.id}`);
+      showNotice('Commande supprimée.', 'success');
+      setOrderToDelete(null);
+      setDetailOrder(null);
+      refresh();
+    } catch (exception) {
+      showNotice(exception instanceof Error ? exception.message : 'Impossible de supprimer la commande.', 'error');
+    } finally {
+      setActionOrderId(null);
+    }
+  }
+
   const columns = [
     {
       key: 'id', label: 'Commande',
@@ -64,6 +99,10 @@ export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | 
       render: (o: Order) => (
         <div><div>{o.customerName ?? '—'}</div><div style={{ fontSize: 12, color: 'var(--bo-text-muted)' }}>{o.customerEmail ?? ''}</div></div>
       ),
+    },
+    {
+      key: 'customerPhone', label: 'Téléphone',
+      render: (o: Order) => <span>{o.customerPhone ?? '—'}</span>,
     },
     {
       key: 'status', label: 'Statut',
@@ -87,8 +126,8 @@ export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | 
       <Card>
         <CardHeader>
           <FiltersBar search={search} onSearchChange={(v) => { setSearch(v); setPage(1); }} status={status} onStatusChange={(v) => { setStatus(v); setPage(1); }} statusOptions={[
-            { value: 'pending', label: 'En attente' }, { value: 'confirmed', label: 'Confirmée' },
-            { value: 'processing', label: 'En cours' }, { value: 'shipped', label: 'Expédiée' },
+            { value: 'pending', label: 'En attente' }, { value: 'paid', label: 'Confirmée' },
+            { value: 'completed', label: 'Terminée' }, { value: 'shipped', label: 'Expédiée' },
             { value: 'delivered', label: 'Livrée' }, { value: 'cancelled', label: 'Annulée' },
           ]} />
           <span style={{ fontSize: 13, color: 'var(--bo-text-muted)' }}>{totalItems} commande{totalItems > 1 ? 's' : ''}</span>
@@ -98,7 +137,32 @@ export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | 
             <EmptyState title="Aucune commande" message="Les commandes apparaîtront ici." />
           ) : (
             <>
-              <Table columns={columns} data={orders} sort={{ field: sortField, direction: sortDir }} onSort={handleSort} onRowClick={setDetailOrder} />
+              <Table
+                columns={columns}
+                data={orders}
+                sort={{ field: sortField, direction: sortDir }}
+                onSort={handleSort}
+                onRowClick={setDetailOrder}
+                renderActions={(order) => (
+                  <>
+                    {isAdmin && order.status === 'pending' && (
+                      <>
+                        <Button size="sm" onClick={(event) => { event.stopPropagation(); void updateOrderStatus(order, 'paid'); }} disabled={actionOrderId === order.id}>
+                          Confirmer
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={(event) => { event.stopPropagation(); setOrderToReject(order); }} disabled={actionOrderId === order.id}>
+                          Refuser
+                        </Button>
+                      </>
+                    )}
+                    {isAdmin && order.status === 'cancelled' && (
+                      <Button size="sm" variant="danger" onClick={(event) => { event.stopPropagation(); setOrderToDelete(order); }} disabled={actionOrderId === order.id}>
+                        Supprimer
+                      </Button>
+                    )}
+                  </>
+                )}
+              />
               <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
             </>
           )}
@@ -108,16 +172,95 @@ export function OrdersPage({ getAccessToken }: { getAccessToken: () => string | 
       <Modal isOpen={!!detailOrder} onClose={() => setDetailOrder(null)} title={`Commande #${detailOrder?.id?.slice(0, 8) ?? ''}`} width="560px">
         {detailOrder && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <FormField label="Client"><div>{detailOrder.customerName ?? '—'}</div></FormField>
-              <FormField label="Email"><div>{detailOrder.customerEmail ?? '—'}</div></FormField>
-              <FormField label="Statut"><Badge tone={statusStyle[detailOrder.status] as any ?? 'neutral'}>{statusLabels[detailOrder.status] ?? detailOrder.status}</Badge></FormField>
-              <FormField label="Total"><strong>{(detailOrder.totalCents / 100).toFixed(2)} {detailOrder.currency}</strong></FormField>
-              <FormField label="Date"><span>{new Date(detailOrder.createdAt).toLocaleString('fr-FR')}</span></FormField>
+            <div style={{ borderBottom: '1px solid var(--bo-border)', paddingBottom: 16 }}>
+              <strong>Informations de la commande</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+                <FormField label="Numéro"><div>#{detailOrder.id}</div></FormField>
+                <FormField label="Boutique"><div>{detailOrder.boutiqueId ?? '—'}</div></FormField>
+                <FormField label="Canal"><div>{detailOrder.channel}</div></FormField>
+                <FormField label="Date de création"><span>{new Date(detailOrder.createdAt).toLocaleString('fr-FR')}</span></FormField>
+                <FormField label="Sous-total"><strong>{(detailOrder.subtotalCents / 100).toFixed(2)} {detailOrder.currency}</strong></FormField>
+                <FormField label="Remise"><strong>{(detailOrder.discountCents / 100).toFixed(2)} {detailOrder.currency}</strong></FormField>
+                <FormField label="Total"><strong>{(detailOrder.totalCents / 100).toFixed(2)} {detailOrder.currency}</strong></FormField>
+                <FormField label="Devise"><div>{detailOrder.currency}</div></FormField>
+              </div>
             </div>
+            <div>
+              <strong>Informations du client</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+                <FormField label="Nom complet"><div>{detailOrder.customerName ?? '—'}</div></FormField>
+                <FormField label="Identifiant client"><div>{detailOrder.customerId ?? '—'}</div></FormField>
+                <FormField label="Email"><div>{detailOrder.customerEmail ?? '—'}</div></FormField>
+                <FormField label="Téléphone"><div>{detailOrder.customerPhone ?? '—'}</div></FormField>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <FormField label="Statut"><Badge tone={statusStyle[detailOrder.status] as any ?? 'neutral'}>{statusLabels[detailOrder.status] ?? detailOrder.status}</Badge></FormField>
+              <FormField label="Paiement"><div>{detailOrder.paymentMethodCode ?? '—'} ({detailOrder.paymentStatus ?? 'pending'})</div></FormField>
+            </div>
+            <div style={{ borderTop: '1px solid var(--bo-border)', paddingTop: 16 }}>
+              <FormField label="Adresse de livraison">
+                <div>{[detailOrder.shippingAddress, detailOrder.shippingLocality, detailOrder.shippingCity, detailOrder.shippingGovernorate, detailOrder.shippingPostalCode, detailOrder.shippingCountry].filter(Boolean).join(', ') || '—'}</div>
+              </FormField>
+              <FormField label="Suivi livraison"><div>{detailOrder.deliveryTracking ?? detailOrder.deliveryStatus ?? '—'}</div></FormField>
+            </div>
+            <div style={{ borderTop: '1px solid var(--bo-border)', paddingTop: 16 }}>
+              <strong>Détails des produits</strong>
+              {detailOrder.items?.length ? (
+                <div className="bo-table-wrapper" style={{ marginTop: 10 }}>
+                  <table className="bo-table">
+                    <thead><tr><th>Produit</th><th>Référence</th><th>Qté</th><th>Prix unitaire</th><th>Total</th></tr></thead>
+                    <tbody>{detailOrder.items.map((item, index) => (
+                      <tr key={`${item.productId ?? item.productName ?? 'item'}-${index}`}>
+                        <td>{item.productName ?? item.productId ?? 'Produit'}</td>
+                        <td>{item.sku ?? '—'}</td>
+                        <td>{item.quantity}</td>
+                        <td>{(item.unitPriceCents / 100).toFixed(2)} {detailOrder.currency}</td>
+                        <td>{((item.totalCents ?? item.unitPriceCents * item.quantity) / 100).toFixed(2)} {detailOrder.currency}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : <div style={{ color: 'var(--bo-text-muted)', marginTop: 8 }}>Aucun produit détaillé.</div>}
+            </div>
+            {isAdmin && detailOrder.status === 'pending' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <Button onClick={() => void updateOrderStatus(detailOrder, 'paid')} disabled={actionOrderId === detailOrder.id}>
+                  Confirmer la commande
+                </Button>
+                <Button variant="danger" onClick={() => setOrderToReject(detailOrder)} disabled={actionOrderId === detailOrder.id}>
+                  Refuser la commande
+                </Button>
+              </div>
+            )}
+            {isAdmin && detailOrder.status === 'cancelled' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="danger" onClick={() => setOrderToDelete(detailOrder)} disabled={actionOrderId === detailOrder.id}>Supprimer la commande</Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>
+      <ConfirmDialog
+        isOpen={!!orderToReject}
+        onClose={() => { if (!actionOrderId) setOrderToReject(null); }}
+        onConfirm={() => { if (orderToReject) void updateOrderStatus(orderToReject, 'cancelled'); }}
+        title="Refuser la commande"
+        message={orderToReject ? `Refuser la commande #${orderToReject.id.slice(0, 8)} ?` : ''}
+        confirmLabel="Refuser"
+        danger
+        isLoading={!!actionOrderId}
+      />
+      <ConfirmDialog
+        isOpen={!!orderToDelete}
+        onClose={() => { if (!actionOrderId) setOrderToDelete(null); }}
+        onConfirm={() => { if (orderToDelete) void deleteOrder(orderToDelete); }}
+        title="Supprimer la commande"
+        message={orderToDelete ? `Supprimer définitivement la commande #${orderToDelete.id.slice(0, 8)} ?` : ''}
+        confirmLabel="Supprimer"
+        danger
+        isLoading={!!actionOrderId}
+      />
     </div>
   );
 }

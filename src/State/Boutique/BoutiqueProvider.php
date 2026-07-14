@@ -7,14 +7,16 @@ use ApiPlatform\State\ProviderInterface;
 use App\Dto\Boutique\BoutiqueOutput;
 use App\Repository\BoutiqueRepository;
 use App\Security\BoutiqueContext;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use App\Service\Module\ModuleAccessService;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class BoutiqueProvider implements ProviderInterface
 {
     public function __construct(
         private readonly BoutiqueRepository $repository,
         private readonly BoutiqueContext $context,
-        private readonly TokenStorageInterface $tokenStorage,
+        private readonly AuthorizationCheckerInterface $authorizationChecker,
+        private readonly ModuleAccessService $moduleAccess,
     ) {
     }
 
@@ -28,10 +30,9 @@ final class BoutiqueProvider implements ProviderInterface
                 return null;
             }
 
-            $token = $this->tokenStorage->getToken();
-            $isAuthenticated = null !== $token && $token->getUser();
+            $isAdmin = $this->authorizationChecker->isGranted('ROLE_BOUTIQUE_ADMIN');
 
-            if ($isAuthenticated) {
+            if ($isAdmin) {
                 if (!$this->context->canAccessBoutique($entity)) {
                     return null;
                 }
@@ -42,12 +43,10 @@ final class BoutiqueProvider implements ProviderInterface
             return $this->toOutput($entity);
         }
 
-        $token = $this->tokenStorage->getToken();
-
-        if (null === $token || !$token->getUser()) {
-            $entities = $this->repository->findPublishedForPublic();
-        } else {
+        if ($this->authorizationChecker->isGranted('ROLE_BOUTIQUE_ADMIN')) {
             $entities = $this->repository->findVisibleTo($this->context->getBoutiqueIds(), $this->context->isSuperAdmin());
+        } else {
+            $entities = $this->repository->findPublishedForPublic();
         }
 
         return array_map([$this, 'toOutput'], $entities);
@@ -69,6 +68,7 @@ final class BoutiqueProvider implements ProviderInterface
         $output->customDomain = $entity->getCustomDomain();
         $output->isVerified = $entity->isVerified();
         $output->isFeatured = $entity->isFeatured();
+        $output->isPublished = $entity->isPublished();
         $output->approvedAt = $entity->getApprovedAt()?->format('c');
         $output->approvedBy = $entity->getApprovedBy();
         $output->rejectionReason = $entity->getRejectionReason();
@@ -80,6 +80,7 @@ final class BoutiqueProvider implements ProviderInterface
         $output->totalRevenue = $entity->getTotalRevenue();
         $output->hasActiveSubscription = $entity->hasActiveSubscription();
         $output->isVisiblePublicly = $entity->isVisiblePublicly();
+        $output->reviewsEnabled = $this->moduleAccess->isModuleEnabled('reviews', $entity);
 
         $settings = $entity->getSettings();
         if (null !== $settings) {
@@ -92,6 +93,7 @@ final class BoutiqueProvider implements ProviderInterface
             $output->address = $settings->getAddress();
             $output->socialLinks = $settings->getSocialLinks();
             $output->colorPalette = $settings->getColorPalette();
+            $output->theme = $settings->getTheme();
             $output->fontFamily = $settings->getFontFamily();
             $output->fontSize = $settings->getFontSize();
             $output->borderRadius = $settings->getBorderRadius();

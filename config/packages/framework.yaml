@@ -22,5 +22,9 @@ framework:
                 policy: fixed_window
                 limit: 120
                 interval: '1 minute'
+            public_suggestion:
+                policy: fixed_window
+                limit: 10
+                interval: '1 minute'
     messenger:
         failure_transport: failed

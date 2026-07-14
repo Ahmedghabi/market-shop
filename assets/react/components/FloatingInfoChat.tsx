@@ -12,8 +12,8 @@ type GuestContact = {
   phone: string;
 };
 
-const contactCookieName = 'hanooty_assistant_contact';
-const messagesCookieName = 'hanooty_assistant_messages';
+const contactCookieName = 'hanooti_assistant_contact';
+const messagesCookieName = 'hanooti_assistant_messages';
 
 function readCookie<T>(name: string): T | null {
   const cookie = document.cookie.split('; ').find((item) => item.startsWith(`${name}=`));
@@ -81,7 +81,7 @@ export function FloatingInfoChat({ title, welcomeMessage, accent = '#0369A1' }: 
     setMessages((current) => [
       ...current,
       { author: 'user', text },
-      { author: 'bot', text: user ? 'Merci pour votre message. Un conseiller Hanooty vous répondra prochainement.' : 'Merci. Vos coordonnées sont enregistrées dans un cookie pour conserver cette conversation et vous recontacter.' },
+      { author: 'bot', text: user ? 'Merci pour votre message. Un conseiller Hanooti vous répondra prochainement.' : 'Merci. Vos coordonnées sont enregistrées dans un cookie pour conserver cette conversation et vous recontacter.' },
     ]);
     setDraft('');
   }

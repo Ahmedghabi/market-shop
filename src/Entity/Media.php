@@ -34,7 +34,7 @@ class Media extends AbstractEntity
         #[ORM\Column(nullable: true)]
         private ?float $duration = null,
         #[ORM\Column(length: 255)]
-        private string $path,
+        private string $path = '',
         #[ORM\Column(length: 255, nullable: true)]
         private ?string $thumbnailPath = null,
         #[ORM\Column(length: 255, nullable: true)]

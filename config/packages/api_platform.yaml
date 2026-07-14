@@ -1,5 +1,5 @@
 api_platform:
-    title: Hanooty API
+    title: Hanooti API
     version: 0.1.0
     mapping:
         paths:

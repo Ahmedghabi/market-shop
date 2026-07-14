@@ -19,7 +19,7 @@ class Webhook extends AbstractEntity implements SoftDeletableInterface
         #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
         private ?Boutique $boutique = null,
         #[ORM\Column(length: 255)]
-        private string $url,
+        private string $url = '',
         #[ORM\Column(type: 'json')]
         private array $events = [],
         #[ORM\Column(length: 255, nullable: true)]

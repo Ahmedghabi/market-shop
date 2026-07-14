@@ -10,32 +10,43 @@ use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Delete;
 use App\State\Webhook\WebhookProvider;
 use App\State\Webhook\WebhookProcessor;
+use App\Dto\Webhook\WebhookInput;
+use App\Dto\Webhook\WebhookOutput;
 
 #[ApiResource(
     operations: [
         new Get(
             uriTemplate: '/admin/webhooks/{id}',
             security: "is_granted('ROLE_SUPER_ADMIN')",
+            output: WebhookOutput::class,
             provider: WebhookProvider::class,
         ),
         new GetCollection(
             uriTemplate: '/admin/webhooks',
             security: "is_granted('ROLE_SUPER_ADMIN')",
+            output: WebhookOutput::class,
             provider: WebhookProvider::class,
         ),
         new Post(
             uriTemplate: '/admin/webhooks',
             security: "is_granted('ROLE_SUPER_ADMIN')",
+            input: WebhookInput::class,
+            output: WebhookOutput::class,
+            read: false,
             processor: WebhookProcessor::class,
         ),
         new Put(
             uriTemplate: '/admin/webhooks/{id}',
             security: "is_granted('ROLE_SUPER_ADMIN')",
+            input: WebhookInput::class,
+            output: WebhookOutput::class,
+            read: false,
             processor: WebhookProcessor::class,
         ),
         new Delete(
             uriTemplate: '/admin/webhooks/{id}',
             security: "is_granted('ROLE_SUPER_ADMIN')",
+            read: false,
             processor: WebhookProcessor::class,
         ),
     ],

@@ -23,6 +23,7 @@ final readonly class ThemeProcessor implements ProcessorInterface
         private BoutiqueRepository $boutiques,
         private EntityManagerInterface $em,
         private FrontOfficeCacheService $cache,
+        private ThemeProvider $themeProvider,
     ) {
     }
 
@@ -77,6 +78,8 @@ final readonly class ThemeProcessor implements ProcessorInterface
         if ($data->isDefault) {
             $this->themes->clearDefault($themeId);
             $theme->setIsDefault(true);
+        } else {
+            $theme->setIsDefault(false);
         }
 
         $this->em->flush();
@@ -85,7 +88,7 @@ final readonly class ThemeProcessor implements ProcessorInterface
             $this->cache->invalidateTheme((string) $boutique->getId());
         }
 
-        return (new ThemeProvider($this->themes, $this->boutiques))->provide(
+        return $this->themeProvider->provide(
             new \ApiPlatform\Metadata\Get(),
             ['id' => (string) $theme->getId()],
         );

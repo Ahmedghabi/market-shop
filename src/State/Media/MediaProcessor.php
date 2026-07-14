@@ -34,7 +34,16 @@ final readonly class MediaProcessor implements ProcessorInterface
     {
         unset($data, $context);
 
-        $boutique = $this->boutiques->findBySlugOrId((string) ($uriVariables['boutiqueId'] ?? ''));
+        $request = $context['request'] ?? null;
+        $boutiqueId = $uriVariables['boutiqueId']
+            ?? $request?->attributes->get('_boutique_id')
+            ?? $request?->query->get('boutiqueId');
+        $boutique = $boutiqueId ? $this->boutiques->findBySlugOrId((string) $boutiqueId) : null;
+
+        if (!$boutique && $request?->attributes->has('_boutique')) {
+            $boutique = $request->attributes->get('_boutique');
+        }
+
         if (!$boutique) {
             throw new NotFoundHttpException('Boutique not found');
         }
@@ -54,7 +63,6 @@ final readonly class MediaProcessor implements ProcessorInterface
             return null;
         }
 
-        $request = $context['request'] ?? null;
         if (!$request) {
             throw new \InvalidArgumentException('No request context');
         }

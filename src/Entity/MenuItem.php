@@ -21,7 +21,7 @@ class MenuItem extends AbstractEntity
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
         private ?Menu $menu = null,
         #[ORM\Column(length: 255)]
-        private string $title,
+        private string $title = '',
         #[ORM\Column(length: 30)]
         private string $type = self::TYPE_URL,
         #[ORM\Column(length: 500, nullable: true)]

@@ -12,4 +12,7 @@ final class CartCheckoutOutput
     public int $totalCents;
     public string $currency;
     public ?string $customerName = null;
+    public int $subtotalCents = 0;
+    public int $loyaltyDiscountCents = 0;
+    public int $loyaltyPointsUsed = 0;
 }

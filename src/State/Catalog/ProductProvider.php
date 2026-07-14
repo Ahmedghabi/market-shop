@@ -101,6 +101,7 @@ final readonly class ProductProvider implements ProviderInterface
         $output->currency = $product->getCurrency();
         $output->categoryId = $product->getCategory() ? (string) $product->getCategory()?->getId() : null;
         $output->categoryName = $product->getCategory()?->getName();
+        $output->categorySlug = $product->getCategory()?->getSlug();
         $output->categoryIds = array_map(
             fn ($pc) => (string) $pc->getCategory()->getId(),
             $product->getProductCategories()->toArray(),
@@ -144,6 +145,7 @@ final readonly class ProductProvider implements ProviderInterface
         ], $product->getFilterValues()->toArray());
         $output->createdAt = $product->getCreatedAt();
         $output->updatedAt = $product->getUpdatedAt();
+        $output->viewsCount = $product->getViewsCount();
 
         return $output;
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Hanooty user guide PDF."""
+"""Generate Hanooti user guide PDF."""
 
 from fpdf import FPDF
 
@@ -22,7 +22,7 @@ class PDF(FPDF):
         if self.page_no() > 1:
             self.set_font('DJR', '', 8)
             self.set_text_color(130, 130, 130)
-            self.cell(0, 8, 'Hanooty \u2014 Guide d\'utilisation', align='R')
+            self.cell(0, 8, 'Hanooti \u2014 Guide d\'utilisation', align='R')
             self.ln(10)
 
     def footer(self):
@@ -36,7 +36,7 @@ class PDF(FPDF):
         self.ln(60)
         self.set_font('DJS', 'B', 36)
         self.set_text_color(53, 37, 205)
-        self.cell(0, 15, 'Hanooty', align='C')
+        self.cell(0, 15, 'Hanooti', align='C')
         self.ln(16)
         self.set_font('DJS', '', 20)
         self.set_text_color(80, 95, 118)
@@ -163,7 +163,7 @@ def build():
     pdf.title_page()
 
     pdf.h1('1. Presentation')
-    pdf.p('Hanooty est une plateforme SaaS multi-boutique permettant de gerer des boutiques en ligne, leurs produits, commandes, stocks, livraisons, abonnements et programmes de fidelite.')
+    pdf.p('Hanooti est une plateforme SaaS multi-boutique permettant de gerer des boutiques en ligne, leurs produits, commandes, stocks, livraisons, abonnements et programmes de fidelite.')
 
     pdf.h2('Roles et hierarchie')
     pdf.code('ROLE_SUPER_ADMIN -> ROLE_BOUTIQUE_ADMIN -> ROLE_CAISSIER -> ROLE_USER\n                                       -> ROLE_CUSTOMER')

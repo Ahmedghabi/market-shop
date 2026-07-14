@@ -32,6 +32,16 @@ class OrderItem extends AbstractEntity
         parent::__construct();
     }
 
+    public function getOrder(): Order
+    {
+        return $this->order;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
     public function getSku(): string
     {
         return $this->sku;

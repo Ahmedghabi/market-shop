@@ -3,6 +3,7 @@
 namespace App\ApiResource\Review;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
@@ -60,6 +61,12 @@ use App\State\Review\ReviewProvider;
             security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             output: ReviewOutput::class,
             provider: ReviewProvider::class,
+        ),
+        new Delete(
+            uriTemplate: '/reviews/{id}',
+            security: "is_granted('ROLE_SUPER_ADMIN')",
+            read: false,
+            processor: ReviewProcessor::class,
         ),
         new Patch(
             name: 'approve_review',

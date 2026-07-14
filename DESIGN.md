@@ -1,8 +1,8 @@
-# Hanooty — Design System & Screens
+# Hanooti — Design System & Screens
 
 ## Brand Identity
 
-Hanooty est une marketplace B2B où chaque boutique a sa propre identité visuelle. Le design doit être **professionnel, moderne, épuré** avec une dominante **violet/indigo** (#3525cd primary, #4f46e5 primaryContainer).
+Hanooti est une marketplace B2B où chaque boutique a sa propre identité visuelle. Le design doit être **professionnel, moderne, épuré** avec une dominante **violet/indigo** (#3525cd primary, #4f46e5 primaryContainer).
 
 ## Design Tokens
 
@@ -59,7 +59,7 @@ Hanooty est une marketplace B2B où chaque boutique a sa propre identité visuel
 Créer une page d'accueil marketplace professionnelle.
 
 HEADER:
-- Logo "Hanooty" à gauche, navigation: Boutiques, Assistant, Connexion
+- Logo "Hanooti" à gauche, navigation: Boutiques, Assistant, Connexion
 - Barre de recherche avec icône de loupe, placeholder "Rechercher une boutique..."
 
 HERO SECTION:
@@ -79,7 +79,7 @@ BOUTIQUE GRID:
 
 FOOTER:
 - Liens: À propos, Contact, CGV, Confidentialité
-- Copyright Hanooty
+- Copyright Hanooti
 
 COULEURS: Fond #fcf8ff, cartes #ffffff, texte #1b1b24
 TYPO: Titres Inter 600, Corps Inter 400
@@ -236,7 +236,7 @@ COULEURS: Barre de suivi: complété en primary, futur en outline.
 Créer le tableau de bord back-office.
 
 BARRE LATÉRALE GAUCHE (260px):
-- Logo Hanooty en haut
+- Logo Hanooti en haut
 - Menu de navigation avec icônes:
   - Dashboard (actif) 🏠
   - Boutiques 🏪

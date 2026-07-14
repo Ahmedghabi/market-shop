@@ -8,6 +8,7 @@ use App\Enum\UserStatus;
 use App\Repository\BoutiqueRepository;
 use App\Repository\UserRepository;
 use App\Repository\UserShopRepository;
+use App\Security\BoutiqueContext;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -24,6 +25,7 @@ final readonly class AdminValidationController
         private UserShopRepository $userShops,
         private NotificationService $notifications,
         private Security $security,
+        private BoutiqueContext $boutiqueContext,
     ) {
     }
 
@@ -142,9 +144,20 @@ final readonly class AdminValidationController
             return new JsonResponse(['message' => 'Utilisateur introuvable.'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $user->setStatus(UserStatus::Suspended);
+        $managedShops = $this->managedUserShops($user);
+        if ([] === $managedShops) {
+            return new JsonResponse(['message' => 'Utilisateur hors périmètre boutique.'], JsonResponse::HTTP_FORBIDDEN);
+        }
+        if (!$this->security->isGranted('ROLE_SUPER_ADMIN') && array_filter($managedShops, static fn ($shop): bool => 'ROLE_CAISSIER' !== $shop->getRole())) {
+            return new JsonResponse(['message' => 'Seul un super administrateur peut gérer un administrateur boutique.'], JsonResponse::HTTP_FORBIDDEN);
+        }
 
-        foreach ($user->getUserShops() as $userShop) {
+        if ($this->security->isGranted('ROLE_SUPER_ADMIN')) {
+            $user->setStatus(UserStatus::Suspended);
+            $managedShops = $user->getUserShops()->toArray();
+        }
+
+        foreach ($managedShops as $userShop) {
             $userShop->setStatus(UserStatus::Suspended);
         }
 
@@ -165,15 +178,35 @@ final readonly class AdminValidationController
             return new JsonResponse(['message' => 'Utilisateur introuvable.'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $user->setStatus(UserStatus::Active);
+        $managedShops = $this->managedUserShops($user);
+        if ([] === $managedShops) {
+            return new JsonResponse(['message' => 'Utilisateur hors périmètre boutique.'], JsonResponse::HTTP_FORBIDDEN);
+        }
+        if (!$this->security->isGranted('ROLE_SUPER_ADMIN') && array_filter($managedShops, static fn ($shop): bool => 'ROLE_CAISSIER' !== $shop->getRole())) {
+            return new JsonResponse(['message' => 'Seul un super administrateur peut gérer un administrateur boutique.'], JsonResponse::HTTP_FORBIDDEN);
+        }
 
-        foreach ($user->getUserShops() as $userShop) {
+        if ($this->security->isGranted('ROLE_SUPER_ADMIN')) {
+            $user->setStatus(UserStatus::Active);
+            $managedShops = $user->getUserShops()->toArray();
+        }
+
+        foreach ($managedShops as $userShop) {
             $userShop->setStatus(UserStatus::Active);
         }
 
         $this->entityManager->flush();
 
         return new JsonResponse(['message' => 'Utilisateur activé.', 'status' => $user->getStatus()->value]);
+    }
+
+    /** @return list<\App\Entity\UserShop> */
+    private function managedUserShops(User $user): array
+    {
+        return array_values(array_filter(
+            $user->getUserShops()->toArray(),
+            fn ($userShop): bool => $this->boutiqueContext->canAccessBoutique($userShop->getBoutique()),
+        ));
     }
 
     #[Route('/api/admin/pending-boutiques', name: 'api_admin_pending_boutiques', methods: ['GET'])]

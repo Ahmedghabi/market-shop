@@ -1,0 +1,19 @@
+admin_delivery_company_validate_import:
+    path: /api/admin/delivery-companies/validate-import
+    controller: App\Controller\Admin\DeliveryCompanyImportController::validateImport
+    methods: [POST]
+
+admin_delivery_company_import:
+    path: /api/admin/delivery-companies/import
+    controller: App\Controller\Admin\DeliveryCompanyImportController::import
+    methods: [POST]
+
+admin_delivery_company_export:
+    path: /api/admin/delivery-companies/{id}/export
+    controller: App\Controller\Admin\DeliveryCompanyImportController::export
+    methods: [GET]
+
+admin_delivery_company_preview_mapping:
+    path: /api/admin/delivery-companies/{id}/preview-mapping
+    controller: App\Controller\Admin\DeliveryCompanyImportController::previewMapping
+    methods: [GET]

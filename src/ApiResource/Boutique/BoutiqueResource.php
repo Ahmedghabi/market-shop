@@ -48,6 +48,7 @@ use App\State\Boutique\BoutiqueProvider;
             input: false,
             output: BoutiqueOutput::class,
             processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
         ),
         new Patch(
             name: 'reject_boutique',
@@ -56,6 +57,7 @@ use App\State\Boutique\BoutiqueProvider;
             input: false,
             output: BoutiqueOutput::class,
             processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
         ),
         new Patch(
             name: 'suspend_boutique',
@@ -64,6 +66,7 @@ use App\State\Boutique\BoutiqueProvider;
             input: false,
             output: BoutiqueOutput::class,
             processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
         ),
         new Patch(
             name: 'activate_boutique',
@@ -72,6 +75,7 @@ use App\State\Boutique\BoutiqueProvider;
             input: false,
             output: BoutiqueOutput::class,
             processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
         ),
         new Patch(
             name: 'archive_boutique',
@@ -80,11 +84,31 @@ use App\State\Boutique\BoutiqueProvider;
             input: false,
             output: BoutiqueOutput::class,
             processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
+        ),
+        new Patch(
+            name: 'publish_boutique',
+            uriTemplate: '/boutiques/{id}/publish',
+            security: "is_granted('ROLE_SUPER_ADMIN')",
+            input: false,
+            output: BoutiqueOutput::class,
+            processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
+        ),
+        new Patch(
+            name: 'unpublish_boutique',
+            uriTemplate: '/boutiques/{id}/unpublish',
+            security: "is_granted('ROLE_SUPER_ADMIN')",
+            input: false,
+            output: BoutiqueOutput::class,
+            processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
         ),
         new Delete(
             uriTemplate: '/boutiques/{id}',
             security: "is_granted('ROLE_SUPER_ADMIN')",
             processor: BoutiqueProcessor::class,
+            provider: BoutiqueProvider::class,
         ),
     ],
     paginationItemsPerPage: 30,
@@ -104,6 +128,7 @@ final class BoutiqueResource
     public ?string $customDomain = null;
     public bool $isVerified = false;
     public bool $isFeatured = false;
+    public bool $isPublished = false;
     public ?string $approvedAt = null;
     public ?string $approvedBy = null;
     public ?string $rejectionReason = null;

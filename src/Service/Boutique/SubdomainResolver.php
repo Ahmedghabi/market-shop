@@ -35,6 +35,10 @@ final class SubdomainResolver
 
         // Strip root domain to isolate subdomain
         $rootDomain = strtolower(trim($this->rootDomain, '.'));
+        if ('' !== $rootDomain && $host === $rootDomain) {
+            return null;
+        }
+
         if ('' !== $rootDomain && str_ends_with($host, '.'.$rootDomain)) {
             $host = substr($host, 0, -strlen('.'.$rootDomain));
         }

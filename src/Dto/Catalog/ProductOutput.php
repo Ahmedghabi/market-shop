@@ -40,6 +40,7 @@ final class ProductOutput
     public string $currency;
     public ?string $categoryId;
     public ?string $categoryName;
+    public ?string $categorySlug;
     /** @var list<string> */
     public array $categoryIds = [];
     /** @var list<array{url: string, smallUrl: ?string, largeUrl: ?string, alt: ?string}> */
@@ -53,6 +54,7 @@ final class ProductOutput
     /** @var array<string, array{filterId: string, filterName: string, filterSlug: string, value: string}> */
     public array $filterValues = [];
     public int $ordersCount = 0;
+    public int $viewsCount = 0;
     public float $revenue = 0.0;
     public \DateTimeImmutable $createdAt;
     public ?\DateTimeImmutable $updatedAt;

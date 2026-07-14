@@ -7,6 +7,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\ApiResource\Chat\ConversationListResource;
 use App\Entity\Conversation;
 use App\Repository\ConversationRepository;
+use App\Service\Chat\ChatAccessService;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /** @implements ProviderInterface<ConversationListResource> */
@@ -15,6 +16,7 @@ final class ConversationListProvider implements ProviderInterface
     public function __construct(
         private ConversationRepository $repository,
         private TokenStorageInterface $tokenStorage,
+        private ChatAccessService $access,
     ) {
     }
 
@@ -27,17 +29,15 @@ final class ConversationListProvider implements ProviderInterface
             return [];
         }
 
-        $isSuperAdmin = in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true);
-
         $qb = $this->repository->createQueryBuilder('c')
             ->addSelect('b')
             ->leftJoin('c.boutique', 'b')
             ->orderBy('c.updatedAt', 'DESC')
             ->addOrderBy('c.createdAt', 'DESC');
 
-        if (!$isSuperAdmin) {
+        if (!$this->access->canManageAllConversations()) {
             $qb->andWhere('b IN (:boutiques)')
-                ->setParameter('boutiques', $user->getAdministeredBoutiques()->toArray());
+                ->setParameter('boutiques', $this->access->getAdministeredBoutiques());
         }
 
         $conversations = $qb->getQuery()->getResult();

@@ -1,14 +1,31 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { RegisterPayload } from './AuthProvider';
 import { appIcons } from '../icons/fontAwesome';
+import { BrandLogo } from '../components/BrandLogo';
 
 type LoginPageProps = {
   onSignIn: (email: string, password: string) => Promise<void>;
   onSignUp: (payload: RegisterPayload) => Promise<void>;
   initialMode?: 'login' | 'register';
 };
+
+type PublicBoutique = {
+  status?: string;
+  isPublished?: boolean;
+  isVisiblePublicly?: boolean;
+};
+
+type PublicReview = {
+  rating: number;
+};
+
+type CollectionPayload<T> = T[] | { member?: T[]; items?: T[] };
+
+function getCollection<T>(payload: CollectionPayload<T>): T[] {
+  return Array.isArray(payload) ? payload : payload.member ?? payload.items ?? [];
+}
 
 export function LoginPage({ onSignIn, onSignUp, initialMode = 'login' }: LoginPageProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
@@ -21,6 +38,36 @@ export function LoginPage({ onSignIn, onSignUp, initialMode = 'login' }: LoginPa
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [publicBoutiquesCount, setPublicBoutiquesCount] = useState<number | null>(null);
+  const [publicReviewsCount, setPublicReviewsCount] = useState<number | null>(null);
+  const [isLoadingPublicMetrics, setIsLoadingPublicMetrics] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    Promise.all([
+      fetch('/api/boutiques', { signal: controller.signal }).then((response) => response.ok ? response.json() as Promise<CollectionPayload<PublicBoutique>> : Promise.reject(new Error('Boutiques indisponibles.'))),
+      fetch('/api/platform/reviews', { signal: controller.signal }).then((response) => response.ok ? response.json() as Promise<CollectionPayload<PublicReview>> : Promise.reject(new Error('Avis indisponibles.'))),
+    ])
+      .then(([boutiquesPayload, reviewsPayload]) => {
+        const boutiques = getCollection(boutiquesPayload).filter((boutique) => boutique.status === 'active' && boutique.isPublished === true && boutique.isVisiblePublicly !== false);
+        const reviews = getCollection(reviewsPayload);
+
+        setPublicBoutiquesCount(boutiques.length);
+        setPublicReviewsCount(reviews.length);
+      })
+      .catch((exception: unknown) => {
+        if (!(exception instanceof DOMException && exception.name === 'AbortError')) {
+          setPublicBoutiquesCount(null);
+          setPublicReviewsCount(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingPublicMetrics(false);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,18 +92,17 @@ export function LoginPage({ onSignIn, onSignUp, initialMode = 'login' }: LoginPa
   return (
     <main className="lovable-auth">
       <div className="lovable-auth__shell">
-        <section className="lovable-auth__panel" aria-label="Présentation Hanooty">
+          <section className="lovable-auth__panel" aria-label="Présentation Hanooti">
           <Link className="lovable-brand" to="/">
-            <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
-            <span>Hanooty</span>
+            <BrandLogo />
           </Link>
           <span className="lovable-pill">Marketplace B2B</span>
           <h1>{isRegister ? 'Lancez votre boutique professionnelle en quelques minutes.' : 'Reconnectez-vous à votre espace boutique.'}</h1>
-          <p>Gérez vos produits, vos commandes, vos transporteurs et votre présence marketplace depuis une interface pensée pour les indépendants.</p>
-          <div className="lovable-auth__proof-grid">
-            <div><strong>2,500+</strong><span>Boutiques actives</span></div>
-            <div><strong>98%</strong><span>Satisfaction client</span></div>
-          </div>
+           <p>Gérez vos produits, vos commandes, vos transporteurs et votre présence marketplace depuis une interface pensée pour les indépendants.</p>
+           <div className="lovable-auth__proof-grid" aria-live="polite">
+             <div><strong>{isLoadingPublicMetrics ? '—' : publicBoutiquesCount?.toLocaleString('fr-FR') ?? '—'}</strong><span>Boutiques actives</span></div>
+             <div><strong>{isLoadingPublicMetrics ? '—' : publicReviewsCount?.toLocaleString('fr-FR') ?? '0'}</strong><span>Avis approuvés</span></div>
+           </div>
           <div className="lovable-auth__feature-card">
             <span className="lovable-auth__icon"><FontAwesomeIcon icon={appIcons.dashboard} /></span>
             <div>
@@ -70,12 +116,11 @@ export function LoginPage({ onSignIn, onSignUp, initialMode = 'login' }: LoginPa
           <div className="lovable-auth__form-card">
             <header>
               <Link className="lovable-auth__mobile-brand" to="/">
-                <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
-                <span>Hanooty</span>
+                <BrandLogo />
               </Link>
               <p className="lovable-auth__eyebrow">{isRegister ? 'Inscription boutique' : 'Connexion sécurisée'}</p>
               <h2>{isRegister ? 'Créer votre compte' : 'Bienvenue'}</h2>
-              <p>{isRegister ? 'Renseignez les informations de base pour demander votre espace boutique.' : 'Connectez-vous pour accéder au back-office Hanooty.'}</p>
+              <p>{isRegister ? 'Renseignez les informations de base pour demander votre espace boutique.' : 'Connectez-vous pour accéder au back-office Hanooti.'}</p>
             </header>
 
             <div className="lovable-auth__tabs" role="tablist" aria-label="Mode authentification">
@@ -143,7 +188,7 @@ export function LoginPage({ onSignIn, onSignUp, initialMode = 'login' }: LoginPa
                   <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
                   <span>Se souvenir de moi</span>
                 </label>
-                <a href="#">Mot de passe oublié ?</a>
+                <a href="mailto:contact@hanooti.com?subject=Demande%20de%20reinitialisation">Mot de passe oublié ?</a>
               </div>
 
               {error && <div className="lovable-auth__error">{error}</div>}
@@ -159,8 +204,8 @@ export function LoginPage({ onSignIn, onSignUp, initialMode = 'login' }: LoginPa
                 {isRegister ? 'J’ai déjà un compte' : 'Créer une boutique'}
               </button>
               <div>
-                <a href="#">Aide</a>
-                <a href="#">Confidentialité</a>
+                 <a href="mailto:contact@hanooti.com?subject=Demande%20d%27aide">Aide</a>
+                 <a href="mailto:contact@hanooti.com?subject=Question%20confidentialite">Confidentialité</a>
               </div>
             </footer>
           </div>

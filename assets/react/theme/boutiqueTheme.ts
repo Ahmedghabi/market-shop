@@ -1,5 +1,6 @@
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { appIcons } from '../icons/fontAwesome';
+import { hanootiGlassTheme } from './themes/hanooti-glass';
 
 export type BoutiqueTheme = {
   boutiqueId: string;
@@ -15,18 +16,7 @@ export type BoutiqueTheme = {
 export const defaultBoutiqueTheme: BoutiqueTheme = {
   boutiqueId: 'luxe-paris',
   name: 'Luxe Paris',
-  colorPalette: {
-    primary: '#3525cd',
-    primaryContainer: '#4f46e5',
-    secondary: '#505f76',
-    background: '#fcf8ff',
-    surface: '#ffffff',
-    surfaceContainer: '#f0ecf9',
-    surfaceContainerHigh: '#eae6f4',
-    text: '#1b1b24',
-    textMuted: '#464555',
-    outline: '#c7c4d8',
-  },
+  colorPalette: hanootiGlassTheme.colorPalette,
   iconSet: {
     dashboard: appIcons.dashboard,
     products: appIcons.products,
@@ -83,4 +73,20 @@ export function applyBoutiqueTheme(theme: BoutiqueTheme) {
   root.style.setProperty('--on-surface', colors.text ?? '#1b1b24');
   root.style.setProperty('--on-surface-variant', colors.textMuted ?? '#464555');
   root.style.setProperty('--outline-variant', colors.outline ?? '#c7c4d8');
+
+  applyStorefrontCssVars(colors);
+}
+
+/** Applies storefront-specific CSS variables used by StorefrontTheme. */
+export function applyStorefrontCssVars(colors: Record<string, string>) {
+  const root = document.documentElement;
+  root.style.setProperty('--sf-bg', colors.background ?? '#f6f2eb');
+  root.style.setProperty('--sf-surface', colors.surface ?? '#ffffff');
+  root.style.setProperty('--sf-surface-muted', colors.surfaceContainer ?? '#ece5d9');
+  root.style.setProperty('--sf-surface-accent', colors.surfaceContainerHigh ?? '#e7e0d6');
+  root.style.setProperty('--sf-text', colors.text ?? '#171717');
+  root.style.setProperty('--sf-text-muted', colors.textMuted ?? '#6b6560');
+  root.style.setProperty('--sf-accent', colors.primary ?? '#111111');
+  root.style.setProperty('--sf-accent-alt', colors.accent ?? colors.primaryContainer ?? '#a44100');
+  root.style.setProperty('--sf-outline', colors.outline ?? '#d8d0c4');
 }

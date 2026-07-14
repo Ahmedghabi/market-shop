@@ -12,13 +12,13 @@ final class OrderInput
     #[Assert\Choice(['online', 'pos'])]
     public string $channel = 'online';
 
-    #[Assert\Choice(['pending', 'confirmed', 'preparing', 'ready', 'shipped', 'delivered', 'cancelled'])]
+    #[Assert\Choice(['draft', 'pending', 'paid', 'completed', 'shipped', 'delivered', 'cancelled', 'refunded'])]
     public string $status = 'pending';
 
     #[Assert\PositiveOrZero]
     public int $discountCents = 0;
 
-    public string $currency = 'EUR';
+    public string $currency = 'TND';
 
     /** @var list<OrderItemInput> */
     #[Assert\Valid]

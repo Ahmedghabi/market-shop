@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Product, Category, ProductFilter, NoticeType } from '../../types';
+import type { Product, Category, ProductFilter, NoticeType, SubscriptionSummary } from '../../types';
 import { useApiClient, useApiData } from '../../hooks/useApi';
 import { Card, CardHeader, CardBody } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -54,6 +54,14 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
 
   const { data, isLoading, error, refresh } = useApiData(fetchProducts, [page, search, status, sortField, sortDir]);
 
+  const fetchSummary = useCallback(async () => {
+    return api.get<SubscriptionSummary>('/subscription/summary');
+  }, [api]);
+  const { data: summary, refresh: refreshSummary } = useApiData(fetchSummary, [boutique?.id]);
+
+  const productQuota = summary?.quotas?.find((q) => q.code === 'max_products');
+  const atQuota = !!productQuota && productQuota.remaining !== null && productQuota.remaining <= 0;
+
   const fetchCategories = useCallback(() => {
     const params = new URLSearchParams();
     if (!boutique?.id && form.boutiqueId) params.set('boutiqueId', form.boutiqueId);
@@ -69,7 +77,7 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
 
   function openCreate() {
     setEditingProduct(null);
-    setForm({ boutiqueId: '', name: '', sku: '', description: '', priceCents: 0, comparePriceCents: 0, stockQuantity: 0, lowStockThreshold: 5, categoryId: '', isActive: true, isFeatured: false });
+    setForm({ boutiqueId: '', name: '', sku: '', description: '', priceCents: 0, comparePriceCents: 0, stockQuantity: 0, lowStockThreshold: 5, categoryId: '', isActive: !atQuota, isFeatured: false });
     setModalOpen(true);
   }
 
@@ -85,7 +93,7 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
       stockQuantity: product.stockQuantity,
       lowStockThreshold: product.lowStockThreshold,
       categoryId: product.categoryId ?? '',
-      isActive: product.isActive ?? product.status === 'PUBLISHED',
+      isActive: product.status === 'ACTIVE',
       isFeatured: product.isFeatured,
     });
     setModalOpen(true);
@@ -109,7 +117,7 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
         sellingPrice: form.priceCents,
         comparePrice: form.comparePriceCents || 0,
         currency: 'TND',
-        status: form.isActive ? 'PUBLISHED' : 'DRAFT',
+        status: form.isActive ? 'ACTIVE' : 'INACTIVE',
         stockQuantity: form.stockQuantity,
         lowStockThreshold: form.lowStockThreshold,
         categoryId: form.categoryId || null,
@@ -125,6 +133,7 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
       }
       setModalOpen(false);
       refresh();
+      refreshSummary();
     } catch (err) {
       showNotice(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde.', 'error');
     } finally {
@@ -140,6 +149,7 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
       showNotice('Produit supprimé.', 'success');
       setDeleteTarget(null);
       refresh();
+      refreshSummary();
     } catch (err) {
       showNotice(err instanceof Error ? err.message : 'Erreur lors de la suppression.', 'error');
     } finally {
@@ -182,10 +192,14 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
       },
     },
     {
+      key: 'viewsCount', label: 'Vues', sortable: true,
+      render: (p: Product) => <strong>{p.viewsCount ?? 0}</strong>,
+    },
+    {
       key: 'isActive', label: 'Statut',
       render: (p: Product) => {
-        const active = p.isActive ?? p.status === 'PUBLISHED';
-        return <Badge tone={active ? 'success' : 'neutral'}>{active ? 'Actif' : 'Inactif'}</Badge>;
+        const active = p.status === 'ACTIVE';
+        return <Badge tone={active ? 'success' : 'neutral'}>{active ? 'Actif' : p.status === 'DRAFT' ? 'Brouillon' : 'Inactif'}</Badge>;
       },
     },
   ];
@@ -200,7 +214,21 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
         actions={<Button onClick={openCreate}>+ Nouveau produit</Button>}
       />
 
-      <Card>
+        <Card>
+        {productQuota && (
+          <div style={{
+            padding: '10px 20px', background: 'var(--bo-surface)', borderBottom: '1px solid var(--bo-border)',
+            fontSize: 13, color: 'var(--bo-text-secondary)', display: 'flex', gap: 16, alignItems: 'center',
+          }}>
+            <span>Produits actifs : <strong>{productQuota.usage}</strong> / {productQuota.limit ?? '∞'}</span>
+            {productQuota.remaining !== null && (
+              <span style={{ color: productQuota.remaining <= 0 ? 'var(--bo-warning)' : 'var(--bo-success)' }}>
+                ({productQuota.remaining <= 0 ? 'quota atteint' : productQuota.remaining + ' restant' + (productQuota.remaining > 1 ? 's' : '')})
+              </span>
+            )}
+            {productQuota.limit === null && <span style={{ color: 'var(--bo-success)' }}>Illimité</span>}
+          </div>
+        )}
         <CardHeader>
           <FiltersBar
             search={search}
@@ -292,9 +320,12 @@ export function ProductsPage({ getAccessToken }: { getAccessToken: () => string 
             </Select>
           </FormField>
           <div style={{ display: 'flex', gap: 20 }}>
-            <label className="bo-checkbox">
-              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
+            <label className="bo-checkbox" style={atQuota && !form.isActive ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>
+              <input type="checkbox" checked={form.isActive}
+                disabled={!!(atQuota && !form.isActive)}
+                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
               Actif
+              {atQuota && <span style={{ marginLeft: 8, color: 'var(--bo-warning)', fontSize: 12 }}>(quota atteint)</span>}
             </label>
             <label className="bo-checkbox">
               <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))} />

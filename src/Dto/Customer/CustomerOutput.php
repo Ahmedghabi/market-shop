@@ -16,7 +16,6 @@ final class CustomerOutput
     public ?string $country;
     public int $ordersCount = 0;
     public float $totalSpent = 0.0;
-    public int $loyaltyPoints = 0;
     public \DateTimeImmutable $createdAt;
     public \DateTimeImmutable $updatedAt;
 }

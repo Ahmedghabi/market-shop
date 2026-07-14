@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/units/bootstrap.php" colors="true">
+<phpunit bootstrap="tests/bootstrap.php" colors="true" failOnWarning="true">
+    <php>
+        <env name="KERNEL_CLASS" value="App\Kernel" force="true" />
+    </php>
     <testsuites>
         <testsuite name="unit">
             <directory>tests/units/src</directory>
+        </testsuite>
+        <testsuite name="functional">
+            <directory>tests/functional</directory>
         </testsuite>
     </testsuites>
     <source>
@@ -10,4 +16,13 @@
             <directory>src</directory>
         </include>
     </source>
+    <coverage>
+        <report>
+            <html outputDirectory="coverage" />
+            <text outputFile="php://stdout" showUncoveredFiles="true" />
+        </report>
+    </coverage>
+    <logging>
+        <junit outputFile="var/log/phpunit.junit.xml" />
+    </logging>
 </phpunit>

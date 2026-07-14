@@ -3,7 +3,7 @@ import { useApiClient, useApiData } from '../../hooks/useApi';
 import { Card, CardBody } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
-import { LoadingState, ErrorState } from '../../components/States';
+import { LoadingState, ErrorState, EmptyState } from '../../components/States';
 import { PageHeader } from '../../layout/Shell';
 import { useNotification } from '../../hooks/useNotification';
 import { Modal } from '../../components/Modal';
@@ -11,6 +11,8 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { FormField, Input, Select, Textarea } from '../../components/FormField';
 import { useBoutique } from '../../hooks/useBoutique';
 import { BoutiqueFormSelect, resolveFormBoutiqueId } from '../../components/BoutiqueFormSelect';
+import { ExtensionsBoutiquePanel } from './ExtensionsBoutiquePanel';
+import { ExtensionsAdminPanel } from './ExtensionsAdminPanel';
 
 type SubscriptionPlan = {
   id: string;
@@ -32,7 +34,12 @@ type SubscriptionPlanForm = {
   isFree: boolean;
   isActive: boolean;
   isVisible: boolean;
-  modules: string;
+  modules: string[];
+};
+
+type ModuleOption = {
+  moduleCode: string;
+  moduleName: string;
 };
 
 type Subscription = {
@@ -52,31 +59,60 @@ const emptyForm: SubscriptionPlanForm = {
   isFree: false,
   isActive: true,
   isVisible: true,
-  modules: '',
+  modules: [],
 };
 
-export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => string | null }) {
+export function SubscriptionsPage({ getAccessToken, userRoles = [] }: { getAccessToken: () => string | null; userRoles?: string[] }) {
   const api = useApiClient(getAccessToken);
   const { showNotice } = useNotification();
   const { boutique } = useBoutique();
+  const isSuperAdmin = userRoles.includes('ROLE_SUPER_ADMIN');
+  const [tab, setTab] = useState<'plans' | 'extensions'>('plans');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<SubscriptionPlan | null>(null);
   const [form, setForm] = useState<SubscriptionPlanForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [subscriptionBoutiqueId, setSubscriptionBoutiqueId] = useState('');
   const [subscriptionPlanId, setSubscriptionPlanId] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [planPreview, setPlanPreview] = useState<{
+    currentPlanName?: string | null;
+    newPlanName: string;
+    newPlanPriceTnd: number;
+    currency: string;
+    durationMonths: number;
+    isRenewal: boolean;
+    projectedEndDate?: string | null;
+    quotaChanges: Array<{ code: string; name: string; currentLimit: number | null; newLimit: number | null; currentUsage: number }>;
+    modulesGained: string[];
+    modulesLost: string[];
+    themesGained: Array<{ code: string; name: string }>;
+    themesLost: Array<{ code: string; name: string }>;
+    extensionCompatibility: Array<{ code: string; name: string; compatible: boolean }>;
+  } | null>(null);
   const [savingSubscriptionRequest, setSavingSubscriptionRequest] = useState(false);
 
-  const fetchPlans = useCallback(() => api.getCollection<SubscriptionPlan>('/admin/subscription-plans'), [api]);
+  const fetchPlans = useCallback(
+    () => api.getCollection<SubscriptionPlan>(isSuperAdmin ? '/admin/subscription-plans' : '/boutique/subscription-plans'),
+    [api, isSuperAdmin],
+  );
   const fetchSub = useCallback(() => api.get<{ member: Subscription[] }>('/subscriptions').catch(() => ({ member: [] })), [api]);
+  const fetchModules = useCallback(
+    () => isSuperAdmin ? api.getCollection<ModuleOption>('/admin/platform-modules') : Promise.resolve({ member: [], totalItems: 0 }),
+    [api, isSuperAdmin],
+  );
 
   const { data: plans, isLoading: plansLoading, error: plansError, refresh: refreshPlans } = useApiData(fetchPlans, []);
   const { data: subsData } = useApiData(fetchSub, []);
+  const { data: modulesData, isLoading: modulesLoading } = useApiData(fetchModules, [isSuperAdmin]);
 
   const plansList = plans?.member ?? [];
   const subscriptions = subsData?.member ?? [];
+  const moduleOptions = modulesData?.member ?? [];
+  const moduleNames = new Map(moduleOptions.map((module) => [module.moduleCode, module.moduleName]));
 
   const openCreate = () => {
     setEditing(null);
@@ -94,7 +130,7 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
       isFree: plan.isFree,
       isActive: plan.isActive,
       isVisible: plan.isVisible,
-      modules: (plan.modules ?? []).join(', '),
+      modules: plan.modules ?? [],
     });
     setModalOpen(true);
   };
@@ -107,7 +143,7 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
     isFree: form.isFree,
     isVisible: form.isVisible,
     isActive: form.isActive,
-    modules: form.modules.split(',').map((module) => module.trim()).filter(Boolean),
+    modules: form.modules,
   });
 
   const savePlan = async () => {
@@ -167,10 +203,29 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
     }
   };
 
-  const openSubscriptionChange = () => {
+  const openSubscriptionChange = (planId = '') => {
     setSubscriptionBoutiqueId('');
-    setSubscriptionPlanId('');
-    setSubscriptionModalOpen(true);
+    setSubscriptionPlanId(planId);
+    if (planId) {
+      void loadPlanPreview(planId);
+    } else {
+      setSubscriptionModalOpen(true);
+    }
+  };
+
+  const loadPlanPreview = async (planId: string) => {
+    setPreviewLoading(true);
+    setPreviewModalOpen(true);
+    try {
+      const preview = await api.get<typeof planPreview>(`/subscription/plan-change/preview?planId=${encodeURIComponent(planId)}`);
+      setPlanPreview(preview);
+      setSubscriptionPlanId(planId);
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : 'Impossible de charger l\'aperçu', 'error');
+      setPreviewModalOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   const requestSubscriptionChange = async () => {
@@ -189,6 +244,7 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
       await api.post('/subscription-requests', { boutiqueId, subscriptionPlanId });
       showNotice('Demande de modification envoyée', 'success');
       setSubscriptionModalOpen(false);
+      setPreviewModalOpen(false);
     } catch (error) {
       showNotice(error instanceof Error ? error.message : 'Erreur lors de la demande', 'error');
     } finally {
@@ -200,9 +256,25 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
     <div>
       <PageHeader
         title="Abonnements"
-        description="Gestion Super Admin des plans: prix, durée, publication, activation et modules inclus."
-        actions={<Button variant="primary" onClick={openCreate}>Nouveau plan</Button>}
+        description={isSuperAdmin
+          ? 'Gestion Super Admin des plans, extensions, quotas et demandes.'
+          : 'Votre abonnement, vos quotas et le catalogue d\'extensions disponibles.'}
+        actions={tab === 'plans' && isSuperAdmin ? <Button variant="primary" onClick={openCreate}>Nouveau plan</Button> : undefined}
       />
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <Button variant={tab === 'plans' ? 'primary' : 'ghost'} size="sm" onClick={() => setTab('plans')}>
+          {isSuperAdmin ? 'Plans' : 'Mon abonnement'}
+        </Button>
+        <Button variant={tab === 'extensions' ? 'primary' : 'ghost'} size="sm" onClick={() => setTab('extensions')}>
+          Extensions{isSuperAdmin ? ' & Quotas' : ''}
+        </Button>
+      </div>
+
+      {tab === 'extensions' ? (
+        isSuperAdmin ? <ExtensionsAdminPanel getAccessToken={getAccessToken} /> : <ExtensionsBoutiquePanel getAccessToken={getAccessToken} />
+      ) : (
+      <>
       <Card>
         <CardBody>
           {plansLoading ? <LoadingState /> : plansError ? <ErrorState message={plansError} onRetry={refreshPlans} /> : (
@@ -225,15 +297,21 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
                   </div>
                   {plan.modules && plan.modules.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                      {plan.modules.map((m) => <Badge key={m} tone="neutral">{m}</Badge>)}
+                       {plan.modules.map((m) => <Badge key={m} tone="neutral">{moduleNames.get(m) ?? m}</Badge>)}
                     </div>
                   )}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-                    <Button variant="secondary" size="sm" onClick={() => openEdit(plan)}>Modifier</Button>
-                    <Button variant="ghost" size="sm" onClick={() => updatePlan(plan, { isActive: !plan.isActive })}>{plan.isActive ? 'Désactiver' : 'Activer'}</Button>
-                    <Button variant="ghost" size="sm" onClick={() => updatePlan(plan, { isVisible: !plan.isVisible })}>{plan.isVisible ? 'Dépublier' : 'Publier'}</Button>
-                    <Button variant="danger" size="sm" onClick={() => setDeleteId(plan.id)}>Supprimer</Button>
-                  </div>
+                  {isSuperAdmin ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+                      <Button variant="secondary" size="sm" onClick={() => openEdit(plan)}>Modifier</Button>
+                      <Button variant="ghost" size="sm" onClick={() => updatePlan(plan, { isActive: !plan.isActive })}>{plan.isActive ? 'Désactiver' : 'Activer'}</Button>
+                      <Button variant="ghost" size="sm" onClick={() => updatePlan(plan, { isVisible: !plan.isVisible })}>{plan.isVisible ? 'Dépublier' : 'Publier'}</Button>
+                      <Button variant="danger" size="sm" onClick={() => setDeleteId(plan.id)}>Supprimer</Button>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 16 }}>
+                      <Button variant="secondary" size="sm" onClick={() => openSubscriptionChange(plan.id)}>Choisir ce plan</Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -257,7 +335,7 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Badge tone={sub.status === 'active' ? 'success' : 'neutral'}>{sub.status}</Badge>
-                    <Button variant="secondary" size="sm" onClick={openSubscriptionChange}>Modifier abonnement</Button>
+                    <Button variant="secondary" size="sm" onClick={() => openSubscriptionChange()}>Modifier abonnement</Button>
                   </div>
                 </div>
               ))}
@@ -293,8 +371,26 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
               <Input type="number" min={0} disabled={form.isFree} value={form.priceTnd} onChange={(e) => setForm({ ...form, priceTnd: e.target.value })} />
             </FormField>
           </div>
-          <FormField label="Modules" hint="Codes séparés par des virgules, ex: reviews, coupons, pos">
-            <Input value={form.modules} onChange={(e) => setForm({ ...form, modules: e.target.value })} />
+          <FormField label="Modules inclus" hint="Sélectionnez les modules existants inclus dans ce plan.">
+            {modulesLoading ? <LoadingState /> : moduleOptions.length === 0 ? (
+              <p style={{ margin: 0, color: 'var(--bo-text-muted)', fontSize: 13 }}>Aucun module disponible.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8, maxHeight: 220, overflowY: 'auto', padding: 4 }}>
+                {moduleOptions.map((module) => {
+                  const checked = form.modules.includes(module.moduleCode);
+                  return (
+                    <label key={module.moduleCode} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--bo-border)', borderRadius: 8, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setForm({ ...form, modules: checked ? form.modules.filter((code) => code !== module.moduleCode) : [...form.modules, module.moduleCode] })}
+                      />
+                      <span><strong>{module.moduleName}</strong><small style={{ display: 'block', color: 'var(--bo-text-muted)' }}>{module.moduleCode}</small></span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </FormField>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             <label><input type="checkbox" checked={form.isFree} onChange={(e) => setForm({ ...form, isFree: e.target.checked, priceTnd: e.target.checked ? '0' : form.priceTnd })} /> Gratuit</label>
@@ -302,6 +398,68 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
             <label><input type="checkbox" checked={form.isVisible} onChange={(e) => setForm({ ...form, isVisible: e.target.checked })} /> Publié</label>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        title="Aperçu du changement de plan"
+        width="720px"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setPreviewModalOpen(false)}>Annuler</Button>
+            <Button variant="primary" onClick={requestSubscriptionChange} disabled={savingSubscriptionRequest || previewLoading || !subscriptionPlanId}>
+              {savingSubscriptionRequest ? 'Envoi...' : 'Confirmer la demande'}
+            </Button>
+          </>
+        )}
+      >
+        {previewLoading ? <LoadingState /> : planPreview ? (
+          <div style={{ display: 'grid', gap: 16 }}>
+            <p style={{ margin: 0, color: 'var(--bo-text-secondary)' }}>
+              {planPreview.currentPlanName ? `Passage de "${planPreview.currentPlanName}" vers ` : ''}
+              <strong>{planPreview.newPlanName}</strong>
+              {planPreview.isRenewal ? ' (renouvellement)' : ''}
+              {' — '}{planPreview.newPlanPriceTnd} {planPreview.currency} / {planPreview.durationMonths} mois
+            </p>
+            {planPreview.projectedEndDate && (
+              <p style={{ margin: 0, fontSize: 13 }}>Date de fin projetée : {new Date(planPreview.projectedEndDate).toLocaleDateString('fr-FR')}</p>
+            )}
+            <div>
+              <h4 style={{ margin: '0 0 8px', fontSize: 13, textTransform: 'uppercase', color: 'var(--bo-text-muted)' }}>Quotas</h4>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {planPreview.quotaChanges.slice(0, 8).map((q) => (
+                  <div key={q.code} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span>{q.name}</span>
+                    <span>{q.currentLimit ?? '∞'} → {q.newLimit ?? '∞'} (utilisé: {q.currentUsage})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {(planPreview.modulesGained.length > 0 || planPreview.modulesLost.length > 0) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <h4 style={{ margin: '0 0 8px', fontSize: 13 }}>Modules gagnés</h4>
+                  {planPreview.modulesGained.length ? planPreview.modulesGained.map((m) => <Badge key={m} tone="success">{m}</Badge>) : <span style={{ fontSize: 13, color: 'var(--bo-text-muted)' }}>—</span>}
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 8px', fontSize: 13 }}>Modules perdus</h4>
+                  {planPreview.modulesLost.length ? planPreview.modulesLost.map((m) => <Badge key={m} tone="warning">{m}</Badge>) : <span style={{ fontSize: 13, color: 'var(--bo-text-muted)' }}>—</span>}
+                </div>
+              </div>
+            )}
+            {planPreview.extensionCompatibility.length > 0 && (
+              <div>
+                <h4 style={{ margin: '0 0 8px', fontSize: 13 }}>Compatibilité extensions</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {planPreview.extensionCompatibility.map((ext) => (
+                    <Badge key={ext.code} tone={ext.compatible ? 'success' : 'warning'}>{ext.name}{ext.compatible ? '' : ' (incompatible)'}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : <EmptyState />}
       </Modal>
 
       <Modal
@@ -338,6 +496,8 @@ export function SubscriptionsPage({ getAccessToken }: { getAccessToken: () => st
         onClose={() => setDeleteId(null)}
         danger
       />
+      </>
+      )}
     </div>
   );
 }

@@ -57,8 +57,8 @@ class Customer extends AbstractEntity implements SoftDeletableInterface
         #[ORM\ManyToOne(targetEntity: User::class)]
         #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?User $user = null,
-        #[ORM\Column]
-        private int $loyaltyPoints = 0,
+        #[ORM\Column(type: 'date_immutable', nullable: true)]
+        private ?\DateTimeImmutable $birthDate = null,
     ) {
         parent::__construct();
         $this->authProviders = new ArrayCollection();
@@ -182,14 +182,14 @@ class Customer extends AbstractEntity implements SoftDeletableInterface
         $this->user = $user;
     }
 
-    public function getLoyaltyPoints(): int
+    public function getBirthDate(): ?\DateTimeImmutable
     {
-        return $this->loyaltyPoints;
+        return $this->birthDate;
     }
 
-    public function setLoyaltyPoints(int $loyaltyPoints): void
+    public function setBirthDate(?\DateTimeImmutable $birthDate): void
     {
-        $this->loyaltyPoints = $loyaltyPoints;
+        $this->birthDate = $birthDate;
     }
 
     /** @return Collection<int, CustomerAuthProvider> */

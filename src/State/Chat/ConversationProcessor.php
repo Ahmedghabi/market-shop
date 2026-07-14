@@ -10,6 +10,9 @@ use App\Entity\Boutique;
 use App\Entity\User;
 use App\Repository\BoutiqueRepository;
 use App\Repository\ConversationRepository;
+use App\Service\Chat\ChatAccessService;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -20,28 +23,23 @@ final class ConversationProcessor implements ProcessorInterface
         private ConversationRepository $repository,
         private BoutiqueRepository $boutiqueRepository,
         private TokenStorageInterface $tokenStorage,
+        private ChatAccessService $access,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ConversationResource
     {
-        $boutiqueId = $uriVariables['boutiqueId'] ?? null;
-        $boutique = $this->boutiqueRepository->find($boutiqueId);
-
-        if (!$boutique instanceof Boutique) {
-            throw new NotFoundHttpException('Boutique not found');
-        }
-
         $id = $uriVariables['id'] ?? null;
 
         if (null !== $id) {
-            $conversation = $this->repository->findOneBy([
-                'id' => $id,
-                'boutique' => $boutique,
-            ]);
+            $conversation = $this->repository->find($id);
 
             if (!$conversation instanceof Conversation) {
                 throw new NotFoundHttpException('Conversation not found');
+            }
+
+            if (!$this->access->canAccessConversation($conversation, $this->getGuestToken($context))) {
+                throw new AccessDeniedHttpException('Conversation access denied');
             }
 
             $conversation->setActive($data->active ?? $conversation->isActive());
@@ -61,10 +59,21 @@ final class ConversationProcessor implements ProcessorInterface
             return $this->mapToResource($conversation);
         }
 
+        $boutiqueId = $uriVariables['boutiqueId'] ?? $data->boutiqueId ?? null;
+        $boutique = $this->boutiqueRepository->find($boutiqueId);
+
+        if (!$boutique instanceof Boutique) {
+            throw new NotFoundHttpException('Boutique not found');
+        }
+
         $token = $this->tokenStorage->getToken();
         $user = $token?->getUser();
 
         $conversation = new Conversation($boutique, $user instanceof User ? $user : null);
+
+        if (!$user instanceof User) {
+            $conversation->generateGuestAccessToken();
+        }
 
         if (null !== $data->guestName) {
             $conversation->setGuestName($data->guestName);
@@ -81,6 +90,13 @@ final class ConversationProcessor implements ProcessorInterface
         return $this->mapToResource($conversation);
     }
 
+    private function getGuestToken(array $context): ?string
+    {
+        $request = $context['request'] ?? null;
+
+        return $request instanceof Request ? $request->headers->get('X-Guest-Chat-Token') : null;
+    }
+
     private function mapToResource(Conversation $conversation): ConversationResource
     {
         $resource = new ConversationResource();
@@ -90,6 +106,7 @@ final class ConversationProcessor implements ProcessorInterface
         $resource->guestName = $conversation->getGuestName();
         $resource->guestEmail = $conversation->getGuestEmail();
         $resource->guestPhone = $conversation->getGuestPhone();
+        $resource->guestAccessToken = $conversation->getGuestAccessToken();
         $resource->active = $conversation->isActive();
         $resource->createdAt = $conversation->getCreatedAt()->format('c');
         $resource->updatedAt = $conversation->getUpdatedAt()?->format('c');

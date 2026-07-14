@@ -6,6 +6,9 @@ use App\Dto\Refund\RefundInput;
 use App\Enum\RefundType;
 use App\Service\Billing\RefundService;
 use App\Service\Webhook\WebhookService;
+use App\Entity\Boutique;
+use App\Repository\BoutiqueRepository;
+use App\Security\BoutiqueContext;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 
@@ -14,6 +17,8 @@ final class RefundProcessor implements ProcessorInterface
     public function __construct(
         private RefundService $refundService,
         private WebhookService $webhookService,
+        private BoutiqueRepository $boutiques,
+        private BoutiqueContext $boutiqueContext,
     ) {
     }
 
@@ -51,7 +56,11 @@ final class RefundProcessor implements ProcessorInterface
             );
         }
 
-        $boutiqueId = $uriVariables['boutiqueId'] ?? '';
+        $boutiqueId = $uriVariables['boutiqueId'] ?? null;
+        if (null === $boutiqueId) {
+            $boutique = $this->resolveBoutique($context);
+            $boutiqueId = $boutique instanceof Boutique ? (string) $boutique->getId() : '';
+        }
 
         if ($data instanceof RefundInput) {
             $refund = $this->refundService->createRefund(
@@ -68,6 +77,21 @@ final class RefundProcessor implements ProcessorInterface
         }
 
         return null;
+    }
+
+    private function resolveBoutique(array $context): ?Boutique
+    {
+        $request = $context['request'] ?? null;
+        $boutique = $request instanceof \Symfony\Component\HttpFoundation\Request
+            ? $request->attributes->get('_boutique')
+            : null;
+        if ($boutique instanceof Boutique) {
+            return $boutique;
+        }
+
+        $id = $this->boutiqueContext->getBoutiqueId();
+
+        return null !== $id ? $this->boutiques->find((string) $id) : null;
     }
 
     private function dispatchRefundEvent(string $eventName, \App\Entity\Refund $refund): void

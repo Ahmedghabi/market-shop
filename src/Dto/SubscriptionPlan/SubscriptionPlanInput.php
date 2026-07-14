@@ -26,4 +26,15 @@ final class SubscriptionPlanInput
 
     /** @var list<string>|null */
     public ?array $modules = null;
+
+    #[Assert\Length(max: 8)]
+    public string $currency = 'TND';
+
+    public int $displayOrder = 0;
+
+    /** @var list<string>|null theme codes included in this plan */
+    public ?array $themeCodes = null;
+
+    /** @var list<array{quotaCode: string, limitValue: int|null}>|null */
+    public ?array $quotas = null;
 }

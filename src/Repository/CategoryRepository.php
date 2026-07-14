@@ -6,6 +6,7 @@ use App\Entity\Boutique;
 use App\Entity\Category;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Uid\Uuid;
 
 /** @extends ServiceEntityRepository<Category> */
 final class CategoryRepository extends ServiceEntityRepository
@@ -28,6 +29,24 @@ final class CategoryRepository extends ServiceEntityRepository
             ['boutique' => $boutique, 'isActive' => true, 'deletedAt' => null],
             ['name' => 'ASC'],
         );
+    }
+
+    public function findBySlugOrId(string $identifier, ?Boutique $boutique = null): ?Category
+    {
+        if (Uuid::isValid($identifier)) {
+            $category = $this->find($identifier);
+            if (null === $boutique || (null !== $category && (string) $category->getBoutique()->getId() === (string) $boutique->getId())) {
+                return $category;
+            }
+
+            return null;
+        }
+
+        if (null === $boutique) {
+            return null;
+        }
+
+        return $this->findOneBy(['boutique' => $boutique, 'slug' => $identifier, 'deletedAt' => null]);
     }
 
     /** @return Category[] */

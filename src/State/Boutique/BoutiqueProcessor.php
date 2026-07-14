@@ -35,7 +35,7 @@ final class BoutiqueProcessor implements ProcessorInterface
         $isSuperAdmin = $this->context->isSuperAdmin();
         $operationName = $operation->getName() ?? '';
 
-        if (isset($uriVariables['id']) && in_array($operationName, ['approve_boutique', 'reject_boutique', 'suspend_boutique', 'activate_boutique', 'archive_boutique'], true)) {
+        if (isset($uriVariables['id']) && in_array($operationName, ['approve_boutique', 'reject_boutique', 'suspend_boutique', 'activate_boutique', 'archive_boutique', 'publish_boutique', 'unpublish_boutique'], true)) {
             $entity = $this->findBoutique((string) $uriVariables['id']);
 
             match ($operationName) {
@@ -44,6 +44,8 @@ final class BoutiqueProcessor implements ProcessorInterface
                 'suspend_boutique' => $this->suspendBoutique($entity),
                 'activate_boutique' => $this->activateBoutique($entity),
                 'archive_boutique' => $this->archiveBoutique($entity),
+                'publish_boutique' => $this->publishBoutique($entity),
+                'unpublish_boutique' => $this->unpublishBoutique($entity),
                 default => throw new \InvalidArgumentException('Unknown operation: '.$operationName),
             };
 
@@ -129,6 +131,18 @@ final class BoutiqueProcessor implements ProcessorInterface
         $this->notifications->notify(null, 'boutique_archived', 'Boutique archivée', sprintf('La boutique "%s" a été archivée.', $entity->getName()), $entity);
     }
 
+    private function publishBoutique(Boutique $entity): void
+    {
+        $entity->publish();
+        $this->notifications->notify(null, 'boutique_published', 'Boutique publiée', sprintf('La boutique "%s" est maintenant publique.', $entity->getName()), $entity);
+    }
+
+    private function unpublishBoutique(Boutique $entity): void
+    {
+        $entity->unpublish();
+        $this->notifications->notify(null, 'boutique_unpublished', 'Boutique dépubliée', sprintf('La boutique "%s" n’est plus publique.', $entity->getName()), $entity);
+    }
+
     private function applyInput(Boutique $entity, BoutiqueInput $input): void
     {
         $entity->setName($input->name);
@@ -177,6 +191,7 @@ final class BoutiqueProcessor implements ProcessorInterface
         $output->customDomain = $entity->getCustomDomain();
         $output->isVerified = $entity->isVerified();
         $output->isFeatured = $entity->isFeatured();
+        $output->isPublished = $entity->isPublished();
         $output->approvedAt = $entity->getApprovedAt()?->format('c');
         $output->approvedBy = $entity->getApprovedBy();
         $output->rejectionReason = $entity->getRejectionReason();

@@ -49,7 +49,10 @@ final readonly class ProductFilterProvider implements ProviderInterface
         if ($operation instanceof Get) {
             $filter = $this->filters->find($uriVariables['id'] ?? '');
 
-            return $filter instanceof ProductFilter ? $this->toResource($filter) : null;
+            return $filter instanceof ProductFilter
+                && (string) $filter->getBoutique()->getId() === (string) $boutique->getId()
+                ? $this->toResource($filter)
+                : null;
         }
 
         return array_map(

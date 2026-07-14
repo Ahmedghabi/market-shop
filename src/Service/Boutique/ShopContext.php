@@ -5,6 +5,7 @@ namespace App\Service\Boutique;
 use App\Entity\Boutique;
 use App\Factory\RedisFactory;
 use App\Repository\BoutiqueRepository;
+use App\Security\BoutiqueContext;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -19,6 +20,7 @@ final readonly class ShopContext
         private RedisFactory $redisFactory,
         private SubdomainResolver $resolver,
         private RequestStack $requestStack,
+        private BoutiqueContext $boutiqueContext,
         private AuthorizationCheckerInterface $auth,
         private TokenStorageInterface $tokenStorage,
         private string $rootDomain,
@@ -107,10 +109,13 @@ final readonly class ShopContext
             return;
         }
 
-        $keys = $redis->keys(self::CACHE_KEY_PREFIX.'.*');
-        if (!empty($keys)) {
-            $redis->del($keys);
-        }
+        $iterator = null;
+        do {
+            $keys = $redis->scan($iterator, self::CACHE_KEY_PREFIX.'.*');
+            if (false !== $keys && [] !== $keys) {
+                $redis->del($keys);
+            }
+        } while (0 !== $iterator);
     }
 
     private function resolveSlugFromRequest($request): ?string
@@ -160,12 +165,22 @@ final readonly class ShopContext
 
     private function resolveFromQueryOrPath($request): ?Boutique
     {
-        $boutiqueId = $request->query->get('boutiqueId') ?? $request->attributes->get('boutiqueId');
+        $boutiqueId = $request->query->get('boutiqueId')
+            ?? $request->query->get('boutiqueSlug')
+            ?? $request->attributes->get('boutiqueId');
 
-        if (null !== $boutiqueId) {
-            return $this->boutiques->find($boutiqueId);
+        if (null === $boutiqueId || '' === (string) $boutiqueId) {
+            return null;
         }
 
-        return null;
+        $boutique = $this->boutiques->findBySlugOrId((string) $boutiqueId);
+        if (null === $boutique || !$this->boutiqueContext->canAccessBoutique($boutique)) {
+            return null;
+        }
+
+        $request->attributes->set('_boutique', $boutique);
+        $request->attributes->set('_boutique_id', $boutique->getId());
+
+        return $boutique;
     }
 }

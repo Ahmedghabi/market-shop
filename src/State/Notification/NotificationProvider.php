@@ -10,6 +10,7 @@ use App\Entity\Notification;
 use App\Repository\NotificationRepository;
 use App\Security\BoutiqueContext;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /** @implements ProviderInterface<NotificationResource> */
@@ -45,6 +46,9 @@ final class NotificationProvider implements ProviderInterface, ProcessorInterfac
         $entity = $this->repository->find($id);
         if (!$entity) {
             throw new NotFoundHttpException('Notification not found');
+        }
+        if (!$this->context->isSuperAdmin() && $entity->getRecipientIdentifier() !== $this->context->getUserIdentifier()) {
+            throw new AccessDeniedHttpException('Access denied');
         }
 
         $entity->markAsRead();

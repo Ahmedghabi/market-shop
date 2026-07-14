@@ -1,0 +1,174 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useApiClient, useApiData } from '../../hooks/useApi';
+import { Card, CardBody, CardHeader } from '../../components/Card';
+import { Button } from '../../components/Button';
+import { Badge } from '../../components/Badge';
+import { LoadingState, EmptyState, ErrorState } from '../../components/States';
+import { PageHeader } from '../../layout/Shell';
+import { useNotification } from '../../hooks/useNotification';
+
+type Conversation = {
+  id: string;
+  boutiqueId: string;
+  boutiqueName: string;
+  userDisplayName?: string | null;
+  guestName?: string | null;
+  guestEmail?: string | null;
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  active: boolean;
+  createdAt: string;
+};
+
+type ChatMessage = {
+  id: string;
+  senderType: string;
+  content: string;
+  fileUrl?: string | null;
+  fileType?: string | null;
+  createdAt: string;
+};
+
+export function ChatPage({ getAccessToken }: { getAccessToken: () => string | null }) {
+  const api = useApiClient(getAccessToken);
+  const { showNotice } = useNotification();
+  const [selected, setSelected] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messageLoading, setMessageLoading] = useState(false);
+  const [reply, setReply] = useState('');
+
+  const fetchConversations = useCallback(() => api.getCollection<Conversation>('/admin/conversations'), [api]);
+  const { data, isLoading, error, refresh } = useApiData(fetchConversations, []);
+  const conversations = data?.member ?? [];
+
+  const loadMessages = useCallback(async (conversation: Conversation) => {
+    setMessageLoading(true);
+    try {
+      const res = await api.get<{ member?: ChatMessage[] } | ChatMessage[]>(`/conversations/${conversation.id}/messages`);
+      setMessages(Array.isArray(res) ? res : res.member ?? []);
+      await api.post(`/conversations/${conversation.id}/messages/read`, { senderType: 'admin' });
+      refresh();
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : 'Impossible de charger la conversation.', 'error');
+    } finally {
+      setMessageLoading(false);
+    }
+  }, [api, refresh, showNotice]);
+
+  useEffect(() => {
+    if (!selected) return;
+    loadMessages(selected);
+  }, [selected?.id]);
+
+  async function sendReply(event: React.FormEvent) {
+    event.preventDefault();
+    if (!selected || !reply.trim()) return;
+
+    try {
+      await api.post(`/conversations/${selected.id}/messages`, { content: reply.trim() });
+      setReply('');
+      await loadMessages(selected);
+      showNotice('Réponse envoyée.', 'success');
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : 'Impossible d envoyer la réponse.', 'error');
+    }
+  }
+
+  if (error) return <ErrorState message={error} onRetry={refresh} />;
+
+  return (
+    <div>
+      <PageHeader title="Messagerie" description="Questions chatBox des visiteurs et clients" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 380px) 1fr', gap: 16 }}>
+        <Card>
+          <CardHeader>
+            <strong>Conversations</strong>
+          </CardHeader>
+          <CardBody>
+            {isLoading ? <LoadingState /> : conversations.length === 0 ? (
+              <EmptyState title="Aucune conversation" message="Les messages chatBox apparaîtront ici." />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {conversations.map((conversation) => {
+                  const active = selected?.id === conversation.id;
+                  return (
+                    <button
+                      key={conversation.id}
+                      type="button"
+                      onClick={() => setSelected(conversation)}
+                      className="bo-input"
+                      style={{
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        background: active ? 'var(--bo-primary-soft)' : 'var(--bo-surface)',
+                        borderColor: active ? 'var(--bo-primary)' : 'var(--bo-border)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <strong>{conversation.guestName || conversation.userDisplayName || 'Visiteur'}</strong>
+                        {conversation.unreadCount > 0 && <Badge tone="warning">{conversation.unreadCount}</Badge>}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--bo-text-muted)' }}>{conversation.boutiqueName}</div>
+                      {conversation.lastMessage && (
+                        <div style={{ marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>
+                          {conversation.lastMessage}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <strong>{selected ? selected.guestName || selected.userDisplayName || 'Conversation visiteur' : 'Conversation'}</strong>
+          </CardHeader>
+          <CardBody>
+            {!selected ? (
+              <EmptyState title="Sélectionnez une conversation" message="Choisissez un échange pour lire les messages et répondre." />
+            ) : messageLoading ? <LoadingState /> : (
+              <>
+                <div style={{ minHeight: 360, maxHeight: 480, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 12 }}>
+                  {messages.length === 0 ? <EmptyState title="Aucun message" message="Cette conversation est vide." /> : messages.map((message) => {
+                    const fromAdmin = message.senderType === 'admin' || message.senderType === 'bot';
+                    return (
+                      <div key={message.id} style={{ alignSelf: fromAdmin ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+                        <div style={{
+                          borderRadius: 14,
+                          padding: '10px 12px',
+                          background: fromAdmin ? 'var(--bo-primary)' : 'var(--bo-surface-muted)',
+                          color: fromAdmin ? '#fff' : 'var(--bo-text)',
+                        }}>
+                          {message.fileUrl && <a href={message.fileUrl} target="_blank" rel="noreferrer" style={{ color: fromAdmin ? '#fff' : 'var(--bo-primary)' }}>Pièce jointe</a>}
+                          {message.content && <div>{message.content}</div>}
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--bo-text-muted)', textAlign: fromAdmin ? 'right' : 'left' }}>
+                          {new Date(message.createdAt).toLocaleString('fr-FR')}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <form onSubmit={sendReply} style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--bo-border)', paddingTop: 12 }}>
+                  <input
+                    className="bo-input"
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    placeholder="Répondre au client..."
+                    style={{ flex: 1 }}
+                  />
+                  <Button type="submit" disabled={!reply.trim()}>Envoyer</Button>
+                </form>
+              </>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+    </div>
+  );
+}

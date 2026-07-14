@@ -63,15 +63,6 @@ final readonly class CouponService
 
     public function create(string $boutiqueId, array $data): Coupon
     {
-        $coupon = new Coupon(
-            boutique: new \App\Entity\Boutique('', ''),
-            code: strtoupper(trim((string) ($data['code'] ?? ''))),
-            name: (string) ($data['name'] ?? ''),
-            type: CouponType::from((string) ($data['type'] ?? 'PERCENT')),
-            scope: CouponScope::from((string) ($data['scope'] ?? 'GLOBAL')),
-            value: (int) ($data['value'] ?? 0),
-        );
-
         $boutique = $this->em->find(\App\Entity\Boutique::class, $boutiqueId);
         if (!$boutique instanceof \App\Entity\Boutique) {
             throw new NotFoundHttpException('Boutique not found');
@@ -121,7 +112,7 @@ final readonly class CouponService
         if (CouponScope::Product === $coupon->getScope() && isset($data['productIds'])) {
             foreach ($data['productIds'] as $productId) {
                 $product = $this->em->find(\App\Entity\Product::class, $productId);
-                if ($product) {
+                if ($product && (string) $product->getBoutique()->getId() === $boutiqueId) {
                     $cp = new CouponProduct($coupon, $product);
                     $this->em->persist($cp);
                     $coupon->addProduct($cp);
@@ -132,7 +123,7 @@ final readonly class CouponService
         if (CouponScope::Category === $coupon->getScope() && isset($data['categoryIds'])) {
             foreach ($data['categoryIds'] as $categoryId) {
                 $category = $this->em->find(\App\Entity\Category::class, $categoryId);
-                if ($category) {
+                if ($category && (string) $category->getBoutique()->getId() === $boutiqueId) {
                     $cc = new CouponCategory($coupon, $category);
                     $this->em->persist($cc);
                     $coupon->addCategory($cc);

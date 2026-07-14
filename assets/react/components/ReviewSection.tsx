@@ -13,9 +13,10 @@ type ReviewOutput = {
 type ReviewSectionProps = {
   boutiqueSlug: string;
   productId?: string;
+  scope?: 'boutique' | 'platform';
 };
 
-export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: ReviewSectionProps) {
+export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId, scope = 'boutique' }: ReviewSectionProps) {
   const [reviews, setReviews] = useState<ReviewOutput[]>([]);
   const [authorName, setAuthorName] = useState('');
   const [rating, setRating] = useState(5);
@@ -23,18 +24,20 @@ export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: Review
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  const endpoint = '/api/reviews';
+  const endpoint = scope === 'platform' ? '/api/platform/reviews' : '/api/reviews';
+  const listEndpoint = productId ? `${endpoint}?productId=${encodeURIComponent(productId)}` : endpoint;
 
   useEffect(() => {
-    fetch(endpoint)
+    fetch(listEndpoint)
       .then((response) => response.ok ? response.json() : [])
       .then((data) => {
-        const items = (data as { member?: ReviewOutput[] }).member ?? data;
+        const payload = data as { member?: ReviewOutput[]; items?: ReviewOutput[]; 'hydra:member'?: ReviewOutput[] } | ReviewOutput[];
+        const items = Array.isArray(payload) ? payload : payload.member ?? payload.items ?? payload['hydra:member'] ?? [];
         const allReviews = Array.isArray(items) ? items : [];
         setReviews(productId ? allReviews.filter((review) => review.productId === productId) : allReviews);
       })
       .catch(() => {});
-  }, [endpoint, productId]);
+  }, [listEndpoint, productId]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -44,7 +47,7 @@ export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: Review
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ authorName, rating, comment: comment || null }),
+        body: JSON.stringify({ productId: productId ?? null, authorName, rating, comment: comment || null }),
       });
 
       if (!response.ok) {
@@ -57,8 +60,6 @@ export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: Review
       setRating(5);
       setComment('');
 
-      const newReview = await response.json();
-      setReviews((prev) => [newReview, ...prev]);
     } catch {
       setError('Erreur réseau. Veuillez réessayer.');
     }
@@ -69,7 +70,7 @@ export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: Review
     : 0;
 
   return (
-    <div>
+    <div className="lovable-review-form">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold">Avis clients</h3>
@@ -127,18 +128,16 @@ export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: Review
               <label className="mb-1 block text-sm font-semibold text-[color:var(--ds-on-surface-variant)]">Note</label>
               <div className="flex gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className={`h-10 w-10 rounded-lg border text-lg transition ${
-                      star <= rating
-                        ? 'border-[color:var(--ds-primary)] bg-[color:var(--ds-primary)] text-white'
-                        : 'border-[color:var(--ds-outline-variant)] text-[color:var(--ds-on-surface-variant)]'
-                    }`}
-                  >
-                    ★
-                  </button>
+                   <button
+                     key={star}
+                     type="button"
+                     onClick={() => setRating(star)}
+                     aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
+                     aria-pressed={star === rating}
+                     className={`lovable-rating-button${star <= rating ? ' lovable-rating-button--active' : ''}`}
+                   >
+                     ★
+                   </button>
                 ))}
               </div>
             </div>
@@ -152,7 +151,7 @@ export function ReviewSection({ boutiqueSlug: _boutiqueSlug, productId }: Review
               />
             </div>
             {error && <p className="text-sm text-[color:var(--ds-error)]">{error}</p>}
-            <Button variant="primary" type="submit">Publier mon avis</Button>
+             <Button className="lovable-button" variant="primary" type="submit">Publier mon avis</Button>
           </form>
         </Card>
       )}

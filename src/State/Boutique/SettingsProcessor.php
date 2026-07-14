@@ -6,11 +6,17 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Boutique\BoutiqueSettingsInput;
 use App\Dto\Boutique\BoutiqueSettingsOutput;
+use App\Entity\Boutique;
 use App\Repository\BoutiqueRepository;
 use App\Security\BoutiqueContext;
 use App\Service\FrontOfficeCacheService;
+use App\Service\Module\ModuleAccessService;
+use App\Service\Subscription\SubscriptionManager;
+use App\Service\Theme\ThemePresetRegistry;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /** @implements ProcessorInterface<BoutiqueSettingsOutput> */
@@ -22,21 +28,18 @@ final readonly class SettingsProcessor implements ProcessorInterface
         private BoutiqueContext $context,
         private FrontOfficeCacheService $cache,
         private SettingsProvider $provider,
+        private ThemePresetRegistry $themePresets,
+        private \App\Repository\ThemeRepository $themes,
+        private ModuleAccessService $modules,
+        private SubscriptionManager $subscriptionManager,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): BoutiqueSettingsOutput
     {
-        unset($operation, $context);
+        unset($operation);
 
-        $boutiqueId = (string) ($uriVariables['boutiqueId'] ?? $this->context->getBoutiqueId() ?? '');
-        $boutique = $this->boutiques->findBySlugOrId($boutiqueId);
-        if (!$boutique) {
-            throw new NotFoundHttpException('Boutique not found');
-        }
-        if (!$this->context->canAccessBoutique($boutique)) {
-            throw new AccessDeniedHttpException('Access denied');
-        }
+        $boutique = $this->resolveBoutique($uriVariables, $context);
 
         $settings = $boutique->getSettings();
         if (!$settings) {
@@ -50,7 +53,7 @@ final readonly class SettingsProcessor implements ProcessorInterface
             $boutique->setName(trim($data->shopName));
         }
 
-        $this->applyScalarFields($settings, $data);
+        $this->applyScalarFields($settings, $data, $boutique);
         $this->applyJsonFields($settings, $data);
 
         $this->em->flush();
@@ -62,8 +65,59 @@ final readonly class SettingsProcessor implements ProcessorInterface
         );
     }
 
-    private function applyScalarFields(\App\Entity\BoutiqueSettings $s, BoutiqueSettingsInput $d): void
+    /** @param array<string, mixed> $uriVariables */
+    private function resolveBoutique(array $uriVariables, array $context): Boutique
     {
+        $request = $context['request'] ?? null;
+        $identifier = $uriVariables['boutiqueId']
+            ?? ($request instanceof Request ? $request->query->get('boutiqueId') : null)
+            ?? ($request instanceof Request ? $request->query->get('boutiqueSlug') : null);
+
+        if (is_string($identifier) && '' !== $identifier) {
+            $boutique = $this->boutiques->findBySlugOrId($identifier);
+            if (!$boutique) {
+                throw new NotFoundHttpException('Boutique not found');
+            }
+
+            if (!$this->context->canAccessBoutique($boutique)) {
+                throw new AccessDeniedHttpException('Access denied');
+            }
+
+            return $boutique;
+        }
+
+        $boutique = $request instanceof Request ? $request->attributes->get('_boutique') : null;
+        if ($boutique instanceof Boutique) {
+            if (!$this->context->canAccessBoutique($boutique)) {
+                throw new AccessDeniedHttpException('Access denied');
+            }
+
+            return $boutique;
+        }
+
+        if ($this->context->isSuperAdmin()) {
+            throw new BadRequestHttpException('Boutique required for super admin.');
+        }
+
+        $boutiqueId = $this->context->getBoutiqueId();
+        $boutique = null !== $boutiqueId ? $this->boutiques->find((string) $boutiqueId) : null;
+        if (!$boutique) {
+            throw new NotFoundHttpException('Boutique not found');
+        }
+
+        if (!$this->context->canAccessBoutique($boutique)) {
+            throw new AccessDeniedHttpException('Access denied');
+        }
+
+        return $boutique;
+    }
+
+    private function applyScalarFields(\App\Entity\BoutiqueSettings $s, BoutiqueSettingsInput $d, Boutique $boutique): void
+    {
+        if (null !== $d->theme) {
+            $this->applyThemePreset($s, $d->theme);
+        }
+
         $socialLinks = $this->mergeSocialLinks($s->getSocialLinks(), $d);
         $logoUrl = $d->logoUrl;
         $primaryColor = $d->primaryColor;
@@ -106,19 +160,32 @@ final readonly class SettingsProcessor implements ProcessorInterface
         if (null !== $d->borderRadius) {
             $s->setBorderRadius($d->borderRadius);
         }
-        if (null !== $d->theme) {
-            $s->setTheme($d->theme);
-        }
         if (null !== $d->metaPixelId) {
+            $metaPixelChanged = $d->metaPixelId !== $s->getMetaPixelId();
+            if ($metaPixelChanged && '' !== $d->metaPixelId && (
+                !$this->modules->isModuleEnabled('analytics', $boutique)
+                || !$this->subscriptionManager->hasExtension('meta_pixel', $boutique)
+            )) {
+                throw new BadRequestHttpException('Le suivi Meta Pixel nécessite le module Analytics et l\'extension Meta Pixel.');
+            }
             $s->setMetaPixelId($d->metaPixelId);
         }
         if (null !== $d->googleAnalyticsId) {
+            if ('' !== $d->googleAnalyticsId && !$this->modules->isModuleEnabled('analytics', $boutique)) {
+                throw new BadRequestHttpException('Google Analytics nécessite le module Analytics.');
+            }
             $s->setGoogleAnalyticsId($d->googleAnalyticsId);
         }
         if (null !== $d->googleTagManagerId) {
+            if ('' !== $d->googleTagManagerId && !$this->modules->isModuleEnabled('analytics', $boutique)) {
+                throw new BadRequestHttpException('Google Tag Manager nécessite le module Analytics.');
+            }
             $s->setGoogleTagManagerId($d->googleTagManagerId);
         }
         if (null !== $d->tiktokPixelId) {
+            if ('' !== $d->tiktokPixelId && !$this->modules->isModuleEnabled('analytics', $boutique)) {
+                throw new BadRequestHttpException('TikTok Pixel nécessite le module Analytics.');
+            }
             $s->setTiktokPixelId($d->tiktokPixelId);
         }
         if (null !== $d->maintenanceMode) {
@@ -141,15 +208,6 @@ final readonly class SettingsProcessor implements ProcessorInterface
         }
         if (null !== $d->createAccountAfterOrder) {
             $s->setCreateAccountAfterOrder($d->createAccountAfterOrder);
-        }
-        if (null !== $d->enableLoyalty) {
-            $s->setEnableLoyalty($d->enableLoyalty);
-        }
-        if (null !== $d->loyaltyPointsPerAmount) {
-            $s->setLoyaltyPointsPerAmount($d->loyaltyPointsPerAmount);
-        }
-        if (null !== $d->loyaltyAmountCents) {
-            $s->setLoyaltyAmountCents($d->loyaltyAmountCents);
         }
     }
 
@@ -257,5 +315,35 @@ final readonly class SettingsProcessor implements ProcessorInterface
         }
 
         return $colorPalette;
+    }
+
+    private function applyThemePreset(\App\Entity\BoutiqueSettings $settings, string $themeCode): void
+    {
+        $theme = $this->themes->findOneByCode($themeCode);
+        if (!$theme instanceof \App\Entity\Theme || !$theme->isActive()) {
+            throw new BadRequestHttpException('Thème invalide ou inactif.');
+        }
+
+        $preset = $this->themePresets->get($themeCode);
+        if (null === $preset) {
+            $settings->setTheme($themeCode);
+
+            return;
+        }
+
+        $settings->setTheme($themeCode);
+        $settings->setColorPalette($preset['colorPalette']);
+        $settings->setFontFamily($preset['fontFamily']);
+        $settings->setBorderRadius($preset['borderRadius']);
+        $settings->updateContact(
+            $settings->getLogoUrl(),
+            $preset['primaryColor'],
+            $preset['secondaryColor'],
+            $settings->getDomain(),
+            $settings->getContactEmail(),
+            $settings->getContactPhone(),
+            $settings->getAddress(),
+            $settings->getSocialLinks(),
+        );
     }
 }

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" role="img" aria-labelledby="title desc">
+  <title id="title">Hanooti</title>
+  <desc id="desc">Symbole Hanooti</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+    <g stroke="#2d709e">
+      <path d="M180 142V35M180 76l-31-31M180 92l34-35M137 104l-45-43M223 110l48-45M128 135H57M232 135h71"/>
+      <path d="M57 135v-19M303 135v-19M92 61V45M271 65V45M149 45V29M214 57V41"/>
+    </g>
+    <g stroke="#4aa992">
+      <path d="M157 142v-45l-45-45M203 142V97l45-45M137 104 82 49M223 104l56-55M103 151H35M257 151h68"/>
+      <path d="M35 151v-18M325 151v-18M82 49V32M279 49V32"/>
+    </g>
+    <g stroke="#e87954">
+      <path d="M149 142V80l-43-43M211 142V80l43-43M106 37V20M254 37V20M133 130H70M227 130h63"/>
+    </g>
+    <g stroke="#eabb37">
+      <path d="M166 142v-34l-38-38M194 142v-34l38-38M128 70H98M232 70h30"/>
+    </g>
+  </g>
+  <g stroke="#2d709e" stroke-width="7" stroke-linejoin="round">
+    <path fill="#ffffff" d="M94 166l86-70 86 70v116c0 10-8 18-18 18H112c-10 0-18-8-18-18Z"/>
+    <path fill="#e87954" d="M180 120l-40 33v102h40Z"/>
+    <path fill="#4aa992" d="M180 120l40 33v102h-40Z"/>
+    <path fill="#ffffff" d="m180 96 86 70-20 25-66-54-66 54-20-25Z"/>
+  </g>
+  <path fill="#ffffff" d="M159 200h42v100h-42z"/>
+</svg>

@@ -13,4 +13,9 @@ final class SubscriptionPlanModuleRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, SubscriptionPlanModule::class);
     }
+
+    public function findOneByCode(string $code): ?SubscriptionPlanModule
+    {
+        return $this->findOneBy(['code' => $code]);
+    }
 }

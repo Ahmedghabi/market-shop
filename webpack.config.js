@@ -8,6 +8,7 @@ Encore
   .enableStimulusBridge('./assets/controllers.json')
   .enableReactPreset()
   .enableTypeScriptLoader()
+  .enablePostCssLoader()
   .enableSingleRuntimeChunk()
   .addPlugin(new webpack.DefinePlugin({
     'process.env.OAUTH2_AUTHORITY': JSON.stringify(process.env.OAUTH2_AUTHORITY || ''),
@@ -18,6 +19,11 @@ Encore
   }))
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
+  .configureCssMinimizerPlugin((options) => {
+    options.minimizerOptions = {
+      preset: ['default', { calc: false }],
+    };
+  })
   .enableVersioning(Encore.isProduction());
 
 module.exports = Encore.getWebpackConfig();

@@ -83,6 +83,12 @@ Build complete multi-boutique auth, subscription, RBAC & module management syste
 - **Cache invalidation** — `BoutiqueCacheSubscriber` Doctrine listener (postUpdate + preRemove) clears Redis cache key on Boutique changes/deletion
 - **Service registration** — `ShopContext` (with `$rootDomain`), `ReservedSlugRegistry` (with `%app.reserved_slugs%`) in `services.yaml`; `app.reserved_slugs` + `shop_context` cache TTL in `parameters.yaml`
 
+### Resolved (this session)
+- **404 sur ops boutique personnalisées** — `suspend`, `activate`, `publish`, `unpublish`, `approve`, `reject`, `archive`, `DELETE` retournaient 404 malgré routes et security corrects.
+  - **Cause** : ces opérations manquaient de `provider: BoutiqueProvider::class`. `BoutiqueResource` est un DTO (pas Doctrine), API Platform ne pouvait pas résoudre l'entité → `ReadProvider` retourne null → 404.
+  - **Fix** : ajouté `provider: BoutiqueProvider::class` sur les 8 opérations dans `src/ApiResource/Boutique/BoutiqueResource.php`.
+  - **Testé** : curl avec token super-admin → 200 pour `suspend`, `activate`, `approve`, `unpublish`.
+
 ### Blocked
 - *(none)*
 
@@ -127,6 +133,17 @@ Build complete multi-boutique auth, subscription, RBAC & module management syste
 - **backoffice.css imported** — added `import '../styles/backoffice.css'` to `main.tsx`
 - **Page patterns** — every page follows: `PageHeader → Card → FiltersBar → Table → Pagination → Modal → ConfirmDialog`; consistent styles, loading states, CRUD flows
 - **State coverage** — all pages handle loading, empty, and error states with retry
+
+### Done (this session - backoffice pages)
+- **3 pages super-admin extraites** :
+  - `pages/boutiques/BoutiquesPage.tsx` — CRUD boutiques + demandes abonnement + publish/unpublish workflow
+  - `pages/statistics/StatistiquesPage.tsx` — KPIs plateforme, grille stats modules, top boutiques CA
+  - `pages/analytics/AnalyticsPage.tsx` — analytiques, thèmes, logs & audit, monitoring Redis/queue/files
+- **Sidebar** — ajout des entrées Statistiques (`chart`) et Analyse & Monitoring (`activity`); icône `activity` SVG ajoutée
+- **BackOfficeApp.tsx** — routes et guards (`ROLE_SUPER_ADMIN`) pour les 3 slugs: `boutiques`, `statistics`, `analytics`
+- **SuperAdminPage** — transformée en hub/tableau de navigation (6 cartes) vers les pages spécialisées; sections extraites supprimées
+- **Bug fix** — pluriel `nouveau{x}` corrigé dans StatistiquesPage (condition vérifiée dynamiquement)
+- **TypeScript + webpack** — clean, aucun warning build
 
 ## Next Steps
 1. Add permission-check middleware/gate for API Platform operations

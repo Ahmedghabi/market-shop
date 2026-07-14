@@ -8,23 +8,33 @@ final class DeliveryCompanyInput
 {
     #[Assert\NotBlank]
     #[Assert\Length(max: 120)]
-    public string $name;
+    public string $name = '';
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 120)]
     #[Assert\Regex('/^[a-z0-9-]+$/')]
-    public string $slug;
+    public string $slug = '';
 
     #[Assert\NotBlank]
     #[Assert\Url]
-    public string $baseUrl;
-
-    public ?string $authEndpoint = null;
+    public string $baseUrl = '';
 
     #[Assert\NotBlank]
-    public string $submitOrderEndpoint = '/orders';
+    public string $provider = 'generic_http';
 
-    public ?string $trackEndpoint = null;
+    #[Assert\NotBlank]
+    public string $authType = 'basic';
+
+    /** @var array<string, mixed> */
+    public array $authConfig = [];
+
+    /** @var array<string, mixed> */
+    public array $mappingConfig = [];
+
+    /** @var array<string, mixed> */
+    public array $parametersConfig = [];
+
+    public ?string $logoUrl = null;
 
     public ?string $description = null;
 

@@ -18,6 +18,7 @@ use App\Security\BoutiqueContext;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 final class UserShopProcessor implements ProcessorInterface
 {
@@ -35,6 +36,7 @@ final class UserShopProcessor implements ProcessorInterface
     {
         if ($operation instanceof Delete) {
             $entity = $this->findEntity((string) $uriVariables['id']);
+            $this->assertAccessible($entity);
             $this->em->remove($entity);
             $this->em->flush();
 
@@ -43,6 +45,7 @@ final class UserShopProcessor implements ProcessorInterface
 
         if (isset($uriVariables['id'])) {
             $entity = $this->findEntity((string) $uriVariables['id']);
+            $this->assertAccessible($entity);
             $this->applyInput($entity, $data);
         } else {
             /** @var UserShopResource $data */
@@ -54,6 +57,15 @@ final class UserShopProcessor implements ProcessorInterface
             $boutique = $this->boutiques->find($data->boutiqueId);
             if (!$boutique instanceof Boutique) {
                 throw new NotFoundHttpException('Boutique not found');
+            }
+            if (!$this->boutiqueContext->canAccessBoutique($boutique)) {
+                throw new AccessDeniedHttpException('Access denied');
+            }
+            if (!$this->boutiqueContext->isSuperAdmin() && 'ROLE_CAISSIER' !== ($data->role ?? 'ROLE_CAISSIER')) {
+                throw new AccessDeniedHttpException('Only super admins can assign boutique-admin access.');
+            }
+            if (!$this->boutiqueContext->isSuperAdmin() && in_array('ROLE_SUPER_ADMIN', $user->getRoles(), true)) {
+                throw new AccessDeniedHttpException('This user cannot be assigned to a boutique.');
             }
 
             $entity = new UserShop(
@@ -73,6 +85,9 @@ final class UserShopProcessor implements ProcessorInterface
     private function applyInput(UserShop $entity, UserShopResource $input): void
     {
         if (null !== $input->role) {
+            if (!$this->boutiqueContext->isSuperAdmin() && 'ROLE_CAISSIER' !== $input->role) {
+                throw new AccessDeniedHttpException('Only super admins can assign boutique-admin access.');
+            }
             $entity->setRole($input->role);
         }
         if (null !== $input->status) {
@@ -88,6 +103,13 @@ final class UserShopProcessor implements ProcessorInterface
         }
 
         return $entity;
+    }
+
+    private function assertAccessible(UserShop $entity): void
+    {
+        if (!$this->boutiqueContext->canAccessBoutique($entity->getBoutique())) {
+            throw new NotFoundHttpException('UserShop not found');
+        }
     }
 
     private function toOutput(UserShop $entity): UserShopOutput

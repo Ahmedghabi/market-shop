@@ -1,4 +1,4 @@
-# Hanooty — Guide d'utilisation
+# Hanooti — Guide d'utilisation
 
 ## Super Admin & Administrateurs Boutique
 
@@ -6,7 +6,7 @@
 
 ## 1. Présentation
 
-Hanooty est une plateforme SaaS multi-boutique permettant de gérer des boutiques en ligne, leurs produits, commandes, stocks, livraisons, abonnements et programmes de fidélité.
+Hanooti est une plateforme SaaS multi-boutique permettant de gérer des boutiques en ligne, leurs produits, commandes, stocks, livraisons, abonnements et programmes de fidélité.
 
 ### Rôles et hiérarchie
 

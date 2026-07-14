@@ -20,7 +20,7 @@ final readonly class DeliveryCacheService
             return null;
         }
 
-        $data = $this->redis->get("shop:{$boutiqueId}:delivery_rules");
+        $data = $this->redis->get("shop.{$boutiqueId}.delivery_rules");
 
         return null !== $data ? json_decode($data, true) : null;
     }
@@ -31,7 +31,7 @@ final readonly class DeliveryCacheService
             return;
         }
 
-        $this->redis->setex("shop:{$boutiqueId}:delivery_rules", $ttl, json_encode($data));
+        $this->redis->setex("shop.{$boutiqueId}.delivery_rules", $ttl, json_encode($data));
     }
 
     public function invalidateShop(string $boutiqueId): void
@@ -40,7 +40,7 @@ final readonly class DeliveryCacheService
             return;
         }
 
-        $keys = $this->redis->keys("shop:{$boutiqueId}:delivery*");
+        $keys = $this->redis->keys("shop.{$boutiqueId}.delivery*");
         if (!empty($keys)) {
             $this->redis->del(...$keys);
         }

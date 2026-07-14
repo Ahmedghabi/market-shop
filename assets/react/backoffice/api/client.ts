@@ -14,7 +14,7 @@ export class ApiClient {
 
   private buildUrl(path: string): string {
     let url = `${this.baseUrl}${path}`;
-    if (this.boutiqueId) {
+    if (this.boutiqueId && !/[?&]boutiqueId=/.test(path)) {
       const separator = path.includes('?') ? '&' : '?';
       url += `${separator}boutiqueId=${encodeURIComponent(this.boutiqueId)}`;
     }
@@ -64,6 +64,7 @@ export class ApiClient {
   patch<T>(path: string, body: unknown): Promise<T> {
     return this.request<T>(path, {
       method: 'PATCH',
+      headers: { 'Content-Type': 'application/merge-patch+json' },
       body: JSON.stringify(body),
     });
   }
@@ -79,10 +80,48 @@ export class ApiClient {
     return this.request<void>(path, { method: 'DELETE' });
   }
 
+  async download(path: string): Promise<Blob> {
+    const token = this.getAccessToken();
+    const response = await fetch(this.buildUrl(path), {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+
+    if (response.status === 401) {
+      window.localStorage.removeItem(storageKey);
+      window.location.assign('/auth/login');
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(error.detail ?? error.message ?? `Erreur ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
   getCollection<T>(path: string): Promise<{ member: T[]; totalItems: number }> {
     return this.get<{ member?: T[]; totalItems?: number }>(path).then((res) => ({
-      member: res.member ?? [],
-      totalItems: res.totalItems ?? 0,
+      member: res.member ?? (res as { items?: T[] }).items ?? [],
+      totalItems: res.totalItems ?? (res as { items?: T[] }).items?.length ?? 0,
     }));
+  }
+
+  async upload(path: string, formData: FormData): Promise<Record<string, unknown>> {
+    const token = this.getAccessToken();
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(error.detail ?? `Erreur ${response.status}`);
+    }
+
+    return response.json();
   }
 }

@@ -57,9 +57,12 @@ final class BoutiqueRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('boutique')
             ->innerJoin('boutique.subscriptions', 'subscription')
+            ->distinct()
             ->andWhere('boutique.status = :status')
+            ->andWhere('boutique.isPublished = :published')
             ->andWhere('subscription.status = :subStatus')
             ->setParameter('status', \App\Enum\BoutiqueStatus::Active)
+            ->setParameter('published', true)
             ->setParameter('subStatus', \App\Enum\SubscriptionStatus::Active)
             ->orderBy('boutique.createdAt', 'DESC')
             ->getQuery()

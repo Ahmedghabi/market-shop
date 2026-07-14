@@ -14,6 +14,12 @@ final class SubscriptionPlanOutput
     public bool $isActive = true;
     /** @var list<string>|null */
     public ?array $modules = null;
+    public string $currency = 'TND';
+    public int $displayOrder = 0;
+    /** @var list<array{id: string, code: string, name: string}> */
+    public array $themes = [];
+    /** @var list<array{quotaCode: string, quotaName: string, limitValue: int|null}> */
+    public array $quotas = [];
     public ?string $createdAt = null;
     public ?string $updatedAt = null;
 }

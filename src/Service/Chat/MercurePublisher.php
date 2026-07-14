@@ -3,6 +3,7 @@
 namespace App\Service\Chat;
 
 use App\Entity\Message;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
@@ -10,6 +11,7 @@ final class MercurePublisher
 {
     public function __construct(
         private HubInterface $hub,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -35,7 +37,7 @@ final class MercurePublisher
 
         foreach ($topics as $topic) {
             $update = new Update($topic, $data);
-            $this->hub->publish($update);
+            $this->publish($update);
         }
     }
 
@@ -48,7 +50,7 @@ final class MercurePublisher
         ], JSON_THROW_ON_ERROR);
 
         $update = new Update(sprintf('chat/conversation/%s', $conversationId), $data);
-        $this->hub->publish($update);
+        $this->publish($update);
     }
 
     public function markAsRead(Message $message): void
@@ -60,6 +62,17 @@ final class MercurePublisher
         ], JSON_THROW_ON_ERROR);
 
         $update = new Update(sprintf('chat/conversation/%s', (string) $message->getConversation()->getId()), $data);
-        $this->hub->publish($update);
+        $this->publish($update);
+    }
+
+    private function publish(Update $update): void
+    {
+        try {
+            $this->hub->publish($update);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Mercure chat publish failed.', [
+                'exception' => $exception,
+            ]);
+        }
     }
 }

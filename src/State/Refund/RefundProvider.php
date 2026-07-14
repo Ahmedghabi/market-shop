@@ -5,6 +5,9 @@ namespace App\State\Refund;
 use App\Dto\Refund\RefundOutput;
 use App\Entity\Refund;
 use App\Repository\RefundRepository;
+use App\Repository\BoutiqueRepository;
+use App\Security\BoutiqueContext;
+use App\Entity\Boutique;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 
@@ -12,13 +15,15 @@ final class RefundProvider implements ProviderInterface
 {
     public function __construct(
         private RefundRepository $refunds,
+        private BoutiqueRepository $boutiques,
+        private BoutiqueContext $context,
     ) {
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): ?RefundOutput
     {
         $refund = $this->refunds->find($uriVariables['id'] ?? null);
-        if (!$refund instanceof Refund) {
+        if (!$refund instanceof Refund || !$this->canAccess($refund, $context)) {
             return null;
         }
 
@@ -28,10 +33,42 @@ final class RefundProvider implements ProviderInterface
     /** @return list<RefundOutput> */
     public function getCollection(Operation $operation, array $uriVariables = [], array $context = []): array
     {
-        $boutiqueId = $uriVariables['boutiqueId'] ?? null;
-        $refunds = $boutiqueId ? $this->refunds->findByBoutique($boutiqueId) : [];
+        $boutique = $this->resolveBoutique($context, $uriVariables);
+        if (!$boutique instanceof Boutique) {
+            return [];
+        }
+
+        $refunds = $this->refunds->findByBoutique((string) $boutique->getId());
 
         return array_map($this->toOutput(...), $refunds);
+    }
+
+    private function canAccess(Refund $refund, array $context): bool
+    {
+        if ($this->context->isSuperAdmin()) {
+            return true;
+        }
+
+        $boutique = $this->resolveBoutique($context);
+
+        return $boutique instanceof Boutique
+            && (string) $refund->getBoutique()->getId() === (string) $boutique->getId();
+    }
+
+    /** @param array<string, mixed> $context @param array<string, mixed> $uriVariables */
+    private function resolveBoutique(array $context, array $uriVariables = []): ?Boutique
+    {
+        $request = $context['request'] ?? null;
+        $boutique = $request instanceof \Symfony\Component\HttpFoundation\Request
+            ? $request->attributes->get('_boutique')
+            : null;
+        if ($boutique instanceof Boutique) {
+            return $boutique;
+        }
+
+        $id = $uriVariables['boutiqueId'] ?? $this->context->getBoutiqueId();
+
+        return null !== $id ? $this->boutiques->find((string) $id) : null;
     }
 
     private function toOutput(Refund $refund): RefundOutput

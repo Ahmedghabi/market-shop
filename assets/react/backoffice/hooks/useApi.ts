@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ApiClient } from '../api/client';
 import { useBoutique } from './useBoutique';
 
 export function useApiClient(getAccessToken: () => string | null): ApiClient {
   const { boutique } = useBoutique();
-  return new ApiClient(getAccessToken, boutique?.id);
+  return useMemo(
+    () => new ApiClient(getAccessToken, boutique?.id),
+    [getAccessToken, boutique?.id],
+  );
 }
 
 export function useApiData<T>(
@@ -40,7 +43,7 @@ export function useApiData<T>(
       });
 
     return () => { cancelled = true; };
-  }, [trigger, ...deps]);
+  }, [fetchFn, trigger, ...deps]);
 
   return { data, isLoading, error, refresh };
 }

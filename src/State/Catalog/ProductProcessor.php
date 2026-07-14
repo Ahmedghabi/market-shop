@@ -28,9 +28,12 @@ use App\Repository\ProductRepository;
 use App\Security\BoutiqueContext;
 use App\Service\FrontOfficeCacheService;
 use App\Service\SeoService;
+use App\Service\Subscription\SubscriptionManager;
 use App\State\Common\BoutiqueWriteResolverTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /** @implements ProcessorInterface<ProductInput, ProductOutput|null> */
@@ -49,6 +52,7 @@ final readonly class ProductProcessor implements ProcessorInterface
         private ProductProvider $provider,
         private SeoService $seo,
         private FrontOfficeCacheService $cache,
+        private SubscriptionManager $subscriptionManager,
     ) {
     }
 
@@ -58,6 +62,10 @@ final readonly class ProductProcessor implements ProcessorInterface
 
         if ($operation instanceof Delete) {
             $product = $this->products->find((string) ($uriVariables['id'] ?? ''));
+            if (!$product instanceof Product || (string) $product->getBoutique()->getId() !== (string) $boutique->getId()) {
+                throw new NotFoundHttpException('Product not found');
+            }
+
             if ($product instanceof Product) {
                 $this->em->remove($product);
                 $this->em->flush();
@@ -91,8 +99,19 @@ final readonly class ProductProcessor implements ProcessorInterface
         $publishedAt = $data->publishedAt ? new \DateTimeImmutable($data->publishedAt) : null;
 
         $product = isset($uriVariables['id']) ? $this->products->find((string) $uriVariables['id']) : null;
+        if (isset($uriVariables['id']) && !$product instanceof Product) {
+            throw new NotFoundHttpException('Product not found');
+        }
+
+        if ($product instanceof Product && (string) $product->getBoutique()->getId() !== (string) $boutique->getId()) {
+            throw new NotFoundHttpException('Product not found');
+        }
 
         if (!$product instanceof Product) {
+            if (ProductStatus::Active === $status && !$this->subscriptionManager->canActivateProduct($boutique)) {
+                throw new BadRequestHttpException('Quota produits actifs atteint. Souscrivez à une extension ou changez de plan.');
+            }
+
             $product = new Product(
                 boutique: $boutique,
                 name: $data->name,
@@ -130,6 +149,9 @@ final readonly class ProductProcessor implements ProcessorInterface
             );
             $this->em->persist($product);
         } else {
+            if (ProductStatus::Active === $status && ProductStatus::Active !== $product->getStatus() && !$this->subscriptionManager->canActivateProduct($boutique)) {
+                throw new BadRequestHttpException('Quota produits actifs atteint. Souscrivez à une extension ou changez de plan.');
+            }
             $product->setName($data->name);
             $product->setSlug($slug);
             $product->setSku($data->sku);

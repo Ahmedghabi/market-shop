@@ -7,7 +7,9 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Dto\Invoice\InvoiceOutput;
 use App\Entity\Invoice;
+use App\Repository\BoutiqueRepository;
 use App\Repository\InvoiceRepository;
+use App\Security\BoutiqueContext;
 use App\Service\Billing\InvoiceCacheService;
 use App\State\Common\BoutiqueAwareProviderTrait;
 
@@ -18,6 +20,8 @@ final readonly class InvoiceProvider implements ProviderInterface
 
     public function __construct(
         private InvoiceRepository $invoices,
+        private BoutiqueRepository $boutiques,
+        private BoutiqueContext $context,
         private InvoiceCacheService $cache,
     ) {
     }
@@ -27,6 +31,11 @@ final readonly class InvoiceProvider implements ProviderInterface
     {
         $invoiceId = $uriVariables['id'] ?? null;
         if ($operation instanceof Get && null !== $invoiceId) {
+            $invoice = $this->invoices->find((string) $invoiceId);
+            if (!$invoice instanceof Invoice || !$this->canReadInvoice($invoice, $context, $operation)) {
+                return null;
+            }
+
             return $this->cache->getInvoice((string) $invoiceId, function () use ($invoiceId): ?InvoiceOutput {
                 $invoice = $this->invoices->find((string) $invoiceId);
 
@@ -34,17 +43,30 @@ final readonly class InvoiceProvider implements ProviderInterface
             });
         }
 
-        $boutiqueId = $uriVariables['boutiqueId'] ?? null;
-        if ($boutiqueId) {
-            $boutique = $this->resolveBoutiqueFromRequest($context);
-            if (!$boutique instanceof \App\Entity\Boutique) {
-                return [];
-            }
-
-            return $this->cache->getShopInvoices((string) $boutique->getId(), fn (): array => array_map([$this, 'toOutput'], $this->invoices->findByBoutique($boutique)));
+        if (str_starts_with((string) $operation->getUriTemplate(), '/admin/')) {
+            return $this->context->isSuperAdmin()
+                ? array_map([$this, 'toOutput'], $this->invoices->findBy([], ['createdAt' => 'DESC']))
+                : [];
         }
 
-        return array_map([$this, 'toOutput'], $this->invoices->findBy([], ['createdAt' => 'DESC']));
+        $boutique = $this->resolveBoutiqueFromRequest($context, $uriVariables);
+        if (!$boutique instanceof \App\Entity\Boutique) {
+            return [];
+        }
+
+        return $this->cache->getShopInvoices((string) $boutique->getId(), fn (): array => array_map([$this, 'toOutput'], $this->invoices->findByBoutique($boutique)));
+    }
+
+    private function canReadInvoice(Invoice $invoice, array $context, Operation $operation): bool
+    {
+        if ($this->context->isSuperAdmin() && str_starts_with((string) $operation->getUriTemplate(), '/admin/')) {
+            return true;
+        }
+
+        $boutique = $this->resolveBoutiqueFromRequest($context);
+
+        return $boutique instanceof \App\Entity\Boutique
+            && (string) $invoice->getBoutique()->getId() === (string) $boutique->getId();
     }
 
     private function toOutput(Invoice $invoice): InvoiceOutput

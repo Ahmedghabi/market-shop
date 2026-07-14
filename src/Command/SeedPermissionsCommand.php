@@ -97,6 +97,30 @@ final class SeedPermissionsCommand extends Command
         ['code' => 'report.orders.read', 'name' => 'Voir rapports commandes', 'module' => 'rapports'],
         ['code' => 'report.customers.read', 'name' => 'Voir rapports clients', 'module' => 'rapports'],
         ['code' => 'report.products.read', 'name' => 'Voir rapports produits', 'module' => 'rapports'],
+
+        // Suggestions
+        ['code' => 'suggestion.read', 'name' => 'Voir les suggestions', 'module' => 'suggestions'],
+        ['code' => 'suggestion.create', 'name' => 'Créer une suggestion', 'module' => 'suggestions'],
+        ['code' => 'suggestion.update', 'name' => 'Modifier une suggestion', 'module' => 'suggestions'],
+        ['code' => 'suggestion.delete', 'name' => 'Supprimer une suggestion', 'module' => 'suggestions'],
+        ['code' => 'suggestion.react', 'name' => 'Réagir aux suggestions', 'module' => 'suggestions'],
+        ['code' => 'suggestion.comment', 'name' => 'Commenter les suggestions', 'module' => 'suggestions'],
+        ['code' => 'suggestion.moderate', 'name' => 'Modérer les suggestions', 'module' => 'suggestions'],
+        ['code' => 'suggestion.publish', 'name' => 'Publier les suggestions', 'module' => 'suggestions'],
+        ['code' => 'suggestion.export', 'name' => 'Exporter les suggestions', 'module' => 'suggestions'],
+        ['code' => 'suggestion.category.manage', 'name' => 'Gérer les catégories de suggestions', 'module' => 'suggestions'],
+
+        // Legacy aliases used by the backoffice frontend
+        ['code' => 'view_products', 'name' => 'Voir les produits (legacy)', 'module' => 'catalogue'],
+        ['code' => 'edit_products', 'name' => 'Modifier les produits (legacy)', 'module' => 'catalogue'],
+        ['code' => 'view_orders', 'name' => 'Voir les commandes (legacy)', 'module' => 'commandes'],
+        ['code' => 'view_reviews', 'name' => 'Voir les avis (legacy)', 'module' => 'clients'],
+        ['code' => 'review.read', 'name' => 'Lire les avis', 'module' => 'clients'],
+        ['code' => 'cms_access', 'name' => 'Accès CMS (legacy)', 'module' => 'cms'],
+        ['code' => 'cms', 'name' => 'CMS (legacy)', 'module' => 'cms'],
+        ['code' => 'blog', 'name' => 'Blog (legacy)', 'module' => 'cms'],
+        ['code' => 'promotions', 'name' => 'Promotions (legacy)', 'module' => 'marketing'],
+        ['code' => 'coupons', 'name' => 'Coupons (legacy)', 'module' => 'marketing'],
     ];
 
     public function __construct(
@@ -107,26 +131,26 @@ final class SeedPermissionsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $existing = $this->em->getRepository(Permission::class)->findAll();
-        if (count($existing) > 0) {
-            $output->writeln('Permissions already seeded ('.count($existing).' found).');
-
-            return Command::SUCCESS;
-        }
+        $repo = $this->em->getRepository(Permission::class);
+        $created = 0;
 
         foreach (self::PERMISSIONS as $data) {
-            $permission = new Permission(
+            if ($repo->findOneBy(['code' => $data['code']])) {
+                continue;
+            }
+
+            $this->em->persist(new Permission(
                 code: $data['code'],
                 name: $data['name'],
                 module: $data['module'],
                 description: null,
-            );
-            $this->em->persist($permission);
+            ));
+            ++$created;
         }
 
         $this->em->flush();
 
-        $output->writeln(sprintf('Seeded %d permissions.', count(self::PERMISSIONS)));
+        $output->writeln(sprintf('Seeded %d permission(s) (%d total defined).', $created, count(self::PERMISSIONS)));
 
         return Command::SUCCESS;
     }

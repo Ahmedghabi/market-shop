@@ -1,33 +1,36 @@
 import { useDeferredValue, useMemo, useState, type CSSProperties } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { PublicHeader } from '../../components/PublicHeader';
+import { frontOfficeUrl } from '../../backoffice/utils/frontOfficeUrl';
 
 type PublicBoutique = {
   name: string;
-  category: string;
-  city: string;
-  image: string;
-  href: string;
-  accent: string;
+  category?: string | null;
+  city?: string | null;
+  image?: string | null;
+  href?: string;
+  accent?: string | null;
   slug: string;
   status?: string;
   logoUrl?: string | null;
+  customDomain?: string | null;
+  isPublished?: boolean;
+  isVisiblePublicly?: boolean;
 };
 
 export function ActiveBoutiquesPage({ boutiques }: { boutiques: PublicBoutique[] }) {
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const deferredQuery = useDeferredValue(query);
 
-  const activeBoutiques = useMemo(() => boutiques.filter((boutique) => boutique.status !== 'closed'), [boutiques]);
-  const categories = useMemo(() => ['Tous', ...Array.from(new Set(activeBoutiques.map((boutique) => boutique.category).filter(Boolean))).slice(0, 6)], [activeBoutiques]);
+  const activeBoutiques = useMemo(() => boutiques.filter((boutique) => boutique.status === 'active' && boutique.isPublished === true && boutique.isVisiblePublicly !== false), [boutiques]);
+  const categories = useMemo(() => ['Tous', ...Array.from(new Set(activeBoutiques.map((boutique) => boutique.category).filter((category): category is string => Boolean(category)))).slice(0, 6)], [activeBoutiques]);
   const filteredBoutiques = useMemo(() => {
     const normalized = deferredQuery.trim().toLowerCase();
     const category = selectedCategory.toLowerCase();
 
     return activeBoutiques.filter((boutique) => {
-      const matchesCategory = category === 'tous' || boutique.category.toLowerCase() === category;
-      const matchesQuery = [boutique.name, boutique.category, boutique.city].join(' ').toLowerCase().includes(normalized);
+      const matchesCategory = category === 'tous' || (boutique.category ?? '').toLowerCase() === category;
+      const matchesQuery = [boutique.name, boutique.category ?? '', boutique.city ?? ''].join(' ').toLowerCase().includes(normalized);
 
       return matchesCategory && matchesQuery;
     });
@@ -35,29 +38,13 @@ export function ActiveBoutiquesPage({ boutiques }: { boutiques: PublicBoutique[]
 
   return (
     <main className="lovable-home lovable-directory">
-      <header className="lovable-header">
-        <div className="lovable-container lovable-header__inner">
-          <Link className="lovable-brand" to="/">
-            <span className="material-symbols-outlined" aria-hidden="true">storefront</span>
-            <span>Hanooty</span>
-          </Link>
-          <nav className="lovable-nav" aria-label="Navigation publique">
-            <Link to="/boutiques">Boutiques</Link>
-            <Link to="/auth/register">Créer ma boutique</Link>
-            <Link to="/auth/login">Connexion</Link>
-          </nav>
-          <div className="lovable-header__actions">
-            <button className="lovable-link-button" type="button" onClick={() => { navigate('/auth/login'); }}>Connexion</button>
-            <button className="lovable-button lovable-button--sm" type="button" onClick={() => { navigate('/auth/register'); }}>S&apos;inscrire</button>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <section className="lovable-directory__hero">
         <div className="lovable-container">
           <div className="lovable-directory__hero-card">
             <span className="lovable-pill">Boutiques actives</span>
-            <h1>Trouvez les marchands disponibles sur Hanooty.</h1>
+            <h1>Trouvez les marchands disponibles sur Hanooti.</h1>
             <p>Parcourez les boutiques actives, filtrez par catégorie et ouvrez directement la vitrine du marchand.</p>
             <div className="lovable-directory__search" role="search">
               <span className="material-symbols-outlined">search</span>
@@ -84,9 +71,9 @@ export function ActiveBoutiquesPage({ boutiques }: { boutiques: PublicBoutique[]
 
           <div className="lovable-directory__grid">
             {filteredBoutiques.length > 0 ? filteredBoutiques.map((boutique) => (
-              <Link className="lovable-card lovable-directory__card" key={boutique.slug} to={boutique.href || `/boutiques/${boutique.slug}`} style={{ '--boutique-accent': boutique.accent || '#0369A1' } as CSSProperties}>
+              <a className="lovable-card lovable-directory__card" key={boutique.slug} href={frontOfficeUrl(boutique)} style={{ '--boutique-accent': boutique.accent || '#0369A1' } as CSSProperties}>
                 <div className="lovable-directory__image">
-                  <img src={boutique.image || boutique.logoUrl || '/img/logo.svg'} alt={`Boutique ${boutique.name}`} onError={(event) => { event.currentTarget.src = '/img/logo.svg'; }} />
+                    <img src={boutique.image || boutique.logoUrl || '/img/hanooti-mark.svg'} alt={`Boutique ${boutique.name}`} onError={(event) => { event.currentTarget.src = '/img/hanooti-mark.svg'; }} />
                   <span><span className="material-symbols-outlined">verified</span> Active</span>
                 </div>
                 <div className="lovable-directory__body">
@@ -100,7 +87,7 @@ export function ActiveBoutiquesPage({ boutiques }: { boutiques: PublicBoutique[]
                   <span>Voir la boutique</span>
                   <span className="material-symbols-outlined">arrow_forward</span>
                 </div>
-              </Link>
+              </a>
             )) : (
               <div className="lovable-directory__empty">
                 <span className="material-symbols-outlined">storefront</span>

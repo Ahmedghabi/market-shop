@@ -85,7 +85,7 @@ services:
     build:
       context: .
       dockerfile: etc/docker/frankenphp/Dockerfile
-    entrypoint: ["sh", "-c", "while true; do php bin/console app:subscription-expiry; php bin/console app:delivery-process; php bin/console app:delivery-retry; sleep 60; done"]
+    entrypoint: ["sh", "-c", "while true; do php bin/console app:subscription-expiry; php bin/console app:extension-expiry; php bin/console app:delivery-process; php bin/console app:delivery-retry; php bin/console app:delivery-tracking-sync; sleep 60; done"]
     volumes:
       - .:/app
     working_dir: /app
@@ -103,7 +103,7 @@ services:
       - ollama_data:/root/.ollama
     entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 3 && ollama pull llama3.2:1b && wait"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 3

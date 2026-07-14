@@ -5,6 +5,7 @@ export type Boutique = {
   status: string;
   contactEmail?: string | null;
   customDomain?: string | null;
+  isPublished?: boolean;
   isVisiblePublicly?: boolean;
   productsCount?: number;
   usersCount?: number;
@@ -66,6 +67,7 @@ export type Product = {
   status?: string;
   isActive?: boolean;
   isFeatured: boolean;
+  viewsCount?: number;
   images?: string[];
   filterValues?: Array<{ filterName: string; value: string }>;
   createdAt: string;
@@ -97,13 +99,37 @@ export type ProductFilter = {
 
 export type Order = {
   id: string;
+  boutiqueId?: string;
+  customerId?: string;
   channel: string;
   status: string;
+  subtotalCents: number;
+  discountCents: number;
   totalCents: number;
   currency: string;
   customerName?: string;
   customerEmail?: string;
+  customerPhone?: string | null;
   itemsCount?: number;
+  items?: Array<{
+    productId?: string | null;
+    productName?: string | null;
+    sku?: string;
+    quantity: number;
+    unitPriceCents: number;
+    totalCents?: number;
+  }>;
+  shippingAddress?: string | null;
+  shippingCity?: string | null;
+  shippingPostalCode?: string | null;
+  shippingCountry?: string | null;
+  shippingGovernorate?: string | null;
+  shippingLocality?: string | null;
+  deliveryStatus?: string | null;
+  paymentStatus?: string;
+  paymentMethodCode?: string | null;
+  deliveryTracking?: string | null;
+  deliveredAt?: string | null;
   createdAt: string;
 };
 
@@ -169,10 +195,35 @@ export type DashboardWidget = {
   color: string;
 };
 
+export type QuotaInfo = {
+  code: string;
+  name: string;
+  unit: string | null;
+  limit: number | null;
+  usage: number;
+  remaining: number | null;
+};
+
+export type SubscriptionSummary = {
+  boutiqueId: string | null;
+  isActive: boolean;
+  planId: string | null;
+  planName: string | null;
+  priceTnd: number;
+  currency: string;
+  startDate: string | null;
+  endDate: string | null;
+  daysRemaining: number | null;
+  quotas: QuotaInfo[];
+  accessibleModules: string[];
+  activeExtensions: Array<{ extensionCode: string; extensionName: string; type: string }>;
+};
+
 export type BellNotification = {
   id: string;
   title: string;
   message: string;
+  boutiqueId?: string | null;
   type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
   createdAt: string;

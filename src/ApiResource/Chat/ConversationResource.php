@@ -15,18 +15,22 @@ use App\State\Chat\ConversationProcessor;
     operations: [
         new GetCollection(
             uriTemplate: '/conversations',
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             provider: ConversationProvider::class,
         ),
         new Post(
             uriTemplate: '/conversations',
+            security: "is_granted('PUBLIC_ACCESS')",
             processor: ConversationProcessor::class,
         ),
         new Get(
             uriTemplate: '/conversations/{id}',
+            security: "is_granted('PUBLIC_ACCESS')",
             provider: ConversationProvider::class,
         ),
         new Patch(
             uriTemplate: '/conversations/{id}',
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN') or is_granted('ROLE_SUPER_ADMIN')",
             processor: ConversationProcessor::class,
         ),
     ],
@@ -39,6 +43,7 @@ final class ConversationResource
     public ?string $guestName = null;
     public ?string $guestEmail = null;
     public ?string $guestPhone = null;
+    public ?string $guestAccessToken = null;
     public bool $active = true;
     public string $createdAt;
     public ?string $updatedAt = null;

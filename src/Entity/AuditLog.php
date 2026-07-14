@@ -19,9 +19,9 @@ class AuditLog extends AbstractEntity
         #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?Boutique $boutique = null,
         #[ORM\Column(length: 80)]
-        private string $action,
+        private string $action = '',
         #[ORM\Column(length: 80)]
-        private string $resourceType,
+        private string $resourceType = '',
         #[ORM\Column(length: 36, nullable: true)]
         private ?string $resourceId = null,
         #[ORM\Column(type: 'json', nullable: true)]

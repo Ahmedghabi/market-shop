@@ -83,6 +83,19 @@
   letter-spacing: -0.04em;
 }
 
+.hanooti-logo {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.lovable-brand .hanooti-logo {
+  height: 58px;
+  object-fit: contain;
+  object-position: left center;
+  width: 156px;
+}
+
 .lovable-brand .material-symbols-outlined {
   color: var(--lh-primary);
   font-size: 1.5rem;
@@ -123,7 +136,8 @@
 }
 
 .lovable-button,
-.lovable-home button.lovable-button {
+.lovable-home button.lovable-button,
+.lovable-home a.lovable-button {
   align-items: center;
   background: linear-gradient(135deg, var(--lh-primary), var(--lh-primary-dark));
   border: 0;
@@ -147,7 +161,8 @@
 }
 
 .lovable-button--sm,
-.lovable-home button.lovable-button--sm {
+.lovable-home button.lovable-button--sm,
+.lovable-home a.lovable-button--sm {
   border-radius: 0.75rem;
   font-size: 0.875rem;
   min-height: 2.25rem;
@@ -155,16 +170,57 @@
 }
 
 .lovable-button--secondary,
-.lovable-home button.lovable-button--secondary {
+.lovable-home button.lovable-button--secondary,
+.lovable-home a.lovable-button--secondary {
   background: var(--lh-card);
   border: 1px solid var(--lh-border);
   box-shadow: none;
   color: var(--lh-foreground);
 }
 
+.lovable-app-reviews .lovable-rating-button {
+  align-items: center;
+  background: var(--lh-card);
+  border: 1px solid var(--lh-border);
+  border-radius: 0.75rem;
+  color: var(--lh-muted-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1.125rem;
+  height: 2.5rem;
+  justify-content: center;
+  padding: 0;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, color 180ms ease;
+  width: 2.5rem;
+}
+
+.lovable-app-reviews .lovable-rating-button:hover,
+.lovable-app-reviews .lovable-rating-button:focus-visible {
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--lh-primary) 18%, transparent);
+  color: var(--lh-primary);
+  transform: translateY(-1px);
+}
+
+.lovable-app-reviews .lovable-rating-button:focus-visible {
+  outline: 2px solid var(--lh-primary);
+  outline-offset: 2px;
+}
+
+.lovable-app-reviews .lovable-rating-button--active {
+  background: linear-gradient(135deg, var(--lh-primary), var(--lh-primary-dark));
+  border-color: transparent;
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--lh-primary) 22%, transparent);
+  color: var(--lh-primary-foreground);
+}
+
+.lovable-app-reviews .lovable-rating-button--active:hover,
+.lovable-app-reviews .lovable-rating-button--active:focus-visible {
+  color: var(--lh-primary-foreground);
+}
+
 .lovable-hero {
   overflow: hidden;
-  padding: 8rem 0 7rem;
+  padding: 2rem 0 7rem;
   position: relative;
 }
 
@@ -196,8 +252,15 @@
 
 .lovable-hero__inner {
   align-items: center;
+  background-image: linear-gradient(135deg, rgb(6 31 91 / 0.68), rgb(14 136 190 / 0.2) 62%, rgb(8 50 122 / 0.45)), url('../../public/img/home-hero-bg.png');
+  background-position: center;
+  background-size: cover;
+  border-radius: 1.75rem;
+  box-shadow: 0 1.5rem 4rem rgb(16 71 145 / 0.2);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  padding: clamp(4rem, 8vw, 7rem) 1.5rem;
   position: relative;
   text-align: center;
   z-index: 1;
@@ -217,21 +280,23 @@
 }
 
 .lovable-hero h1 {
-  color: var(--lh-foreground);
+  color: #ffffff;
   font-size: clamp(3.25rem, 6vw, 4.5rem);
   font-weight: 900;
   letter-spacing: -0.065em;
   line-height: 1.05;
   margin: 1.5rem auto 0;
   max-width: 48rem;
+  text-shadow: 0 0.15rem 1rem rgb(5 38 92 / 0.4);
 }
 
 .lovable-hero p {
-  color: var(--lh-muted-text);
+  color: rgb(255 255 255 / 0.88);
   font-size: 1.25rem;
   line-height: 1.7;
   margin: 1.5rem auto 0;
   max-width: 42rem;
+  text-shadow: 0 0.1rem 0.75rem rgb(5 38 92 / 0.35);
 }
 
 .lovable-hero__actions {
@@ -252,7 +317,7 @@
 }
 
 .lovable-stats div {
-  border-right: 1px solid var(--lh-border);
+  border-right: 1px solid rgb(255 255 255 / 0.3);
 }
 
 .lovable-stats div:last-child {
@@ -267,14 +332,14 @@
 }
 
 .lovable-stats span {
-  color: var(--lh-muted-text);
+  color: rgb(255 255 255 / 0.78);
   display: block;
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
 
 .lovable-section {
-  padding: 6rem 0;
+  padding: 3rem 0;
 }
 
 .lovable-section--muted,
@@ -343,14 +408,19 @@
   margin: 0 -1.5rem;
   overflow-x: auto;
   padding: 0.25rem 1.5rem 1rem;
+  scroll-behavior: smooth;
   scroll-padding-left: 1.5rem;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
 }
 
 .lovable-boutique-grid .lovable-boutique-card {
-  flex: 0 0 18.125rem;
+  flex: 0 0 calc((100% - 3rem) / 3);
   scroll-snap-align: start;
+}
+
+.lovable-boutique-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .lovable-boutique-card {
@@ -751,9 +821,18 @@
 }
 
 .lovable-footer__top {
+  align-items: start;
   display: grid;
-  gap: 2.5rem;
-  grid-template-columns: 1.4fr repeat(3, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  grid-template-columns: minmax(15rem, 1.5fr) repeat(3, minmax(7rem, 1fr));
+}
+
+.lovable-footer__brand {
+  min-width: 0;
+}
+
+.lovable-footer__brand .lovable-brand {
+  display: inline-flex;
 }
 
 .lovable-footer__brand p {
@@ -762,24 +841,6 @@
   line-height: 1.65;
   margin: 1rem 0 1.5rem;
   max-width: 18rem;
-}
-
-.lovable-socials {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.lovable-socials a {
-  align-items: center;
-  background: var(--lh-card);
-  border-radius: 999px;
-  color: var(--lh-muted-text);
-  display: flex;
-  font-size: 0.7rem;
-  height: 2.25rem;
-  justify-content: center;
-  overflow: hidden;
-  width: 2.25rem;
 }
 
 .lovable-footer__column {
@@ -797,6 +858,15 @@
 .lovable-footer__bottom {
   color: var(--lh-muted-text);
   font-size: 0.875rem;
+}
+
+.lovable-footer__column a {
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.lovable-footer__column a:hover {
+  color: var(--lh-primary);
+  transform: translateX(2px);
 }
 
 .lovable-footer__bottom {
@@ -894,6 +964,11 @@
 .lovable-auth__panel .lovable-brand .material-symbols-outlined,
 .lovable-auth__panel .lovable-brand span {
   color: var(--lh-primary-foreground);
+}
+
+.lovable-auth__panel .lovable-brand .hanooti-logo {
+  height: 72px;
+  width: 190px;
 }
 
 .lovable-auth__panel .lovable-pill {
@@ -999,6 +1074,18 @@
   font-weight: 900;
   gap: 0.5rem;
   margin-bottom: 2rem;
+}
+
+.lovable-auth__mobile-brand .hanooti-logo {
+  height: 58px;
+  width: 150px;
+}
+
+.hanooti-logo--marketplace {
+  height: 58px;
+  object-fit: contain;
+  object-position: left center;
+  width: 170px;
 }
 
 .lovable-auth__eyebrow {
@@ -1529,6 +1616,10 @@
     display: flex;
   }
 
+  .lovable-boutique-grid .lovable-boutique-card {
+    flex-basis: calc((100% - 1.5rem) / 2);
+  }
+
   .lovable-section-header--split {
     align-items: start;
     flex-direction: column;
@@ -1570,8 +1661,17 @@
     display: none;
   }
 
+  .lovable-boutique-grid .lovable-boutique-card {
+    flex-basis: calc(100vw - 3rem);
+  }
+
   .lovable-hero {
-    padding: 5rem 0 4rem;
+    padding: 2rem 0 4rem;
+  }
+
+  .lovable-hero__inner {
+    border-radius: 1.25rem;
+    padding: 4rem 1rem;
   }
 
   .lovable-hero h1 {
@@ -1595,6 +1695,17 @@
   .lovable-benefit-grid,
   .lovable-footer__top {
     grid-template-columns: 1fr;
+  }
+
+  .lovable-stats div {
+    border-bottom: 1px solid rgb(255 255 255 / 0.3);
+    border-right: 0;
+    padding-bottom: 1rem;
+  }
+
+  .lovable-stats div:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
   }
 
   .lovable-auth__shell {

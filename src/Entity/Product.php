@@ -115,10 +115,12 @@ class Product extends AbstractEntity implements SoftDeletableInterface
         #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?Brand $brand = null,
         #[ORM\Column(length: 3)]
-        private string $currency = 'EUR',
+        private string $currency = 'TND',
         #[ORM\ManyToOne(targetEntity: Category::class, inversedBy: 'products')]
         #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
         private ?Category $category = null,
+        #[ORM\Column]
+        private int $viewsCount = 0,
         #[ORM\Column]
         private \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
         #[ORM\Column(nullable: true)]
@@ -219,6 +221,16 @@ class Product extends AbstractEntity implements SoftDeletableInterface
     public function isActive(): bool
     {
         return ProductStatus::Active === $this->status;
+    }
+
+    public function getViewsCount(): int
+    {
+        return $this->viewsCount;
+    }
+
+    public function incrementViews(): void
+    {
+        ++$this->viewsCount;
     }
 
     public function getCostPrice(): int

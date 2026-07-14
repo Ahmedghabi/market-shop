@@ -15,9 +15,13 @@ import { useBoutique } from '../../hooks/useBoutique';
 import { BoutiqueFormSelect, resolveFormBoutiqueId } from '../../components/BoutiqueFormSelect';
 
 type Promotion = {
-  id: string; boutiqueId?: string; name: string; type: string; value: number; active: boolean;
+  id: string; boutiqueId?: string; name: string; scope: string; type: string; value: number; active: boolean;
+  categoryIds?: string[]; productIds?: string[];
   startsAt?: string; endsAt?: string; createdAt: string;
 };
+
+type CategoryOption = { id: string; name: string };
+type ProductOption = { id: string; name: string };
 
 const PAGE_SIZE = 20;
 
@@ -32,7 +36,7 @@ export function PromotionsPage({ getAccessToken }: { getAccessToken: () => strin
   const [deleteTarget, setDeleteTarget] = useState<Promotion | null>(null);
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ boutiqueId: '', name: '', type: 'percentage', value: 0, startDate: '', endDate: '', status: 'active' });
+  const [form, setForm] = useState({ boutiqueId: '', name: '', scope: 'global', categoryId: '', productId: '', type: 'percentage', value: 0, startDate: '', endDate: '', status: 'active' });
 
   const fetchData = useCallback(async () => {
     const params = new URLSearchParams();
@@ -43,18 +47,31 @@ export function PromotionsPage({ getAccessToken }: { getAccessToken: () => strin
   }, [api, page, search, status]);
 
   const { data, isLoading, error, refresh } = useApiData(fetchData, [page, search, status]);
+  const targetBoutiqueId = form.boutiqueId || boutique?.id || '';
+  const fetchCategories = useCallback(
+    () => targetBoutiqueId ? api.getCollection<CategoryOption>(`/categories?boutiqueId=${encodeURIComponent(targetBoutiqueId)}`) : Promise.resolve({ member: [], totalItems: 0 }),
+    [api, targetBoutiqueId],
+  );
+  const fetchProducts = useCallback(
+    () => targetBoutiqueId ? api.getCollection<ProductOption>(`/products?boutiqueId=${encodeURIComponent(targetBoutiqueId)}&itemsPerPage=100`) : Promise.resolve({ member: [], totalItems: 0 }),
+    [api, targetBoutiqueId],
+  );
+  const { data: categoriesData, isLoading: categoriesLoading } = useApiData(fetchCategories, [targetBoutiqueId]);
+  const { data: productsData, isLoading: productsLoading } = useApiData(fetchProducts, [targetBoutiqueId]);
   const items = data?.member ?? [];
+  const categories = categoriesData?.member ?? [];
+  const products = productsData?.member ?? [];
   const totalItems = data?.totalItems ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
 
   function openCreate() {
     setEditing(null);
-    setForm({ boutiqueId: '', name: '', type: 'percentage', value: 0, startDate: '', endDate: '', status: 'active' });
+    setForm({ boutiqueId: '', name: '', scope: 'global', categoryId: '', productId: '', type: 'percentage', value: 0, startDate: '', endDate: '', status: 'active' });
     setModalOpen(true);
   }
   function openEdit(p: Promotion) {
     setEditing(p);
-    setForm({ boutiqueId: p.boutiqueId ?? '', name: p.name, type: p.type, value: p.value, startDate: p.startsAt ?? '', endDate: p.endsAt ?? '', status: p.active ? 'active' : 'inactive' });
+    setForm({ boutiqueId: p.boutiqueId ?? '', name: p.name, scope: p.scope ?? 'global', categoryId: p.categoryIds?.[0] ?? '', productId: p.productIds?.[0] ?? '', type: p.type, value: p.value, startDate: p.startsAt?.slice(0, 10) ?? '', endDate: p.endsAt?.slice(0, 10) ?? '', status: p.active ? 'active' : 'inactive' });
     setModalOpen(true);
   }
 
@@ -64,7 +81,18 @@ export function PromotionsPage({ getAccessToken }: { getAccessToken: () => strin
     if (!boutiqueId) { showNotice('Sélectionnez une boutique.', 'error'); return; }
     setSubmitting(true);
     try {
-      const body = { boutiqueId, name: form.name, type: form.type, value: form.value, startsAt: form.startDate || null, endsAt: form.endDate || null, active: form.status === 'active' };
+      const body = {
+        boutiqueId,
+        name: form.name,
+        scope: form.scope,
+        categoryIds: form.scope === 'category' && form.categoryId ? [form.categoryId] : [],
+        productIds: form.scope === 'product' && form.productId ? [form.productId] : [],
+        type: form.type,
+        value: form.value,
+        startsAt: form.startDate || null,
+        endsAt: form.endDate || null,
+        active: form.status === 'active',
+      };
       if (editing) { await api.patch('/promotions/' + editing.id, body); showNotice('Promotion mise à jour.', 'success'); }
       else { await api.post('/promotions', body); showNotice('Promotion créée.', 'success'); }
       setModalOpen(false); refresh();
@@ -80,6 +108,7 @@ export function PromotionsPage({ getAccessToken }: { getAccessToken: () => strin
 
   const columns = [
     { key: 'name', label: 'Nom', render: (p: Promotion) => <strong>{p.name}</strong> },
+    { key: 'scope', label: 'Portée', render: (p: Promotion) => <Badge tone="neutral">{p.scope === 'category' ? 'Catégorie' : p.scope === 'product' ? 'Produit' : 'Toute la boutique'}</Badge> },
     { key: 'type', label: 'Type', render: (p: Promotion) => <Badge tone="neutral">{p.type === 'percentage' ? '%' : 'Montant fixe'}</Badge> },
     { key: 'value', label: 'Valeur', render: (p: Promotion) => <span>{p.type === 'percentage' ? `${p.value}%` : `${(p.value / 100).toFixed(2)} TND`}</span> },
     { key: 'status', label: 'Statut', render: (p: Promotion) => <Badge tone={p.active ? 'success' : 'neutral'}>{p.active ? 'Actif' : 'Inactif'}</Badge> },
@@ -107,8 +136,31 @@ export function PromotionsPage({ getAccessToken }: { getAccessToken: () => strin
         <><Button variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button><Button onClick={handleSubmit} disabled={submitting}>{submitting ? '...' : editing ? 'Mettre à jour' : 'Créer'}</Button></>
       }>
         <form className="bo-form" onSubmit={handleSubmit}>
-          <BoutiqueFormSelect value={form.boutiqueId} onChange={(boutiqueId) => setForm((f) => ({ ...f, boutiqueId }))} />
+          <BoutiqueFormSelect value={form.boutiqueId} onChange={(boutiqueId) => setForm((f) => ({ ...f, boutiqueId, categoryId: '', productId: '' }))} />
           <FormField label="Nom" required><Input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></FormField>
+          <FormField label="Portée de la promotion" required>
+            <Select value={form.scope} onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value, categoryId: '', productId: '' }))}>
+              <option value="global">Toute la boutique</option>
+              <option value="category">Une catégorie</option>
+              <option value="product">Un produit</option>
+            </Select>
+          </FormField>
+          {form.scope === 'category' && (
+            <FormField label="Catégorie" required>
+              <Select required value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>
+                <option value="">{categoriesLoading ? 'Chargement...' : 'Sélectionner une catégorie'}</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </Select>
+            </FormField>
+          )}
+          {form.scope === 'product' && (
+            <FormField label="Produit" required>
+              <Select required value={form.productId} onChange={(e) => setForm((f) => ({ ...f, productId: e.target.value }))}>
+                <option value="">{productsLoading ? 'Chargement...' : 'Sélectionner un produit'}</option>
+                {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+              </Select>
+            </FormField>
+          )}
           <div className="bo-form-row">
             <FormField label="Type">
               <Select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>

@@ -6,6 +6,7 @@ import { Table } from '../../components/Table';
 import { Badge, statusBadge } from '../../components/Badge';
 import { Pagination } from '../../components/Pagination';
 import { Modal } from '../../components/Modal';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { LoadingState, EmptyState, ErrorState } from '../../components/States';
 import { PageHeader } from '../../layout/Shell';
 import { useNotification } from '../../hooks/useNotification';
@@ -36,12 +37,15 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export function ReviewsPage({ getAccessToken }: { getAccessToken: () => string | null }) {
+export function ReviewsPage({ getAccessToken, userRoles = [] }: { getAccessToken: () => string | null; userRoles?: string[] }) {
   const api = useApiClient(getAccessToken);
   const { showNotice } = useNotification();
+  const isSuperAdmin = userRoles.includes('ROLE_SUPER_ADMIN');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [viewReview, setViewReview] = useState<Review | null>(null);
+  const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async () => {
     const params = new URLSearchParams();
@@ -74,6 +78,23 @@ export function ReviewsPage({ getAccessToken }: { getAccessToken: () => string |
       refresh();
     } catch (err) {
       showNotice(err instanceof Error ? err.message : 'Erreur.', 'error');
+    }
+  }
+
+  async function handleDelete() {
+    if (!reviewToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await api.delete('/reviews/' + reviewToDelete.id);
+      showNotice('Avis supprimé.', 'success');
+      if (viewReview?.id === reviewToDelete.id) setViewReview(null);
+      setReviewToDelete(null);
+      refresh();
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : 'Erreur lors de la suppression.', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -126,6 +147,11 @@ export function ReviewsPage({ getAccessToken }: { getAccessToken: () => string |
               </Button>
             </>
           )}
+          {isSuperAdmin && (
+            <Button size="sm" variant="danger" onClick={(e) => { e?.stopPropagation?.(); setReviewToDelete(r); }}>
+              Supprimer
+            </Button>
+          )}
         </div>
       ),
     },
@@ -167,7 +193,18 @@ export function ReviewsPage({ getAccessToken }: { getAccessToken: () => string |
         onClose={() => setViewReview(null)}
         title="Détail de l'avis"
         footer={
-          viewReview?.status === 'pending' ? (
+          viewReview && isSuperAdmin ? (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <Button variant="secondary" onClick={() => setViewReview(null)}>Fermer</Button>
+              {viewReview.status === 'pending' && (
+                <>
+                  <Button onClick={() => { handleApprove(viewReview); setViewReview(null); }}>Approuver</Button>
+                  <Button variant="secondary" style={{ color: 'var(--bo-error)' }} onClick={() => { handleReject(viewReview); setViewReview(null); }}>Rejeter</Button>
+                </>
+              )}
+              <Button variant="danger" onClick={() => { setReviewToDelete(viewReview); setViewReview(null); }}>Supprimer</Button>
+            </div>
+          ) : viewReview?.status === 'pending' ? (
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <Button variant="secondary" onClick={() => setViewReview(null)}>Fermer</Button>
               <Button onClick={() => { if (viewReview) { handleApprove(viewReview); setViewReview(null); } }}>
@@ -201,6 +238,17 @@ export function ReviewsPage({ getAccessToken }: { getAccessToken: () => string |
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!reviewToDelete}
+        onClose={() => { if (!isDeleting) setReviewToDelete(null); }}
+        onConfirm={handleDelete}
+        title="Supprimer l'avis"
+        message={reviewToDelete ? `Voulez-vous supprimer définitivement l'avis de ${reviewToDelete.authorName} ? Cette action est irréversible.` : ''}
+        confirmLabel="Supprimer définitivement"
+        danger
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

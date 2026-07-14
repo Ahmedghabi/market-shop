@@ -19,7 +19,7 @@ use App\State\Catalog\CategoryProvider;
     operations: [
         new GetCollection(uriTemplate: '/categories', output: CategoryOutput::class, provider: CategoryProvider::class),
         new Post(uriTemplate: '/categories', security: "is_granted('ROLE_BOUTIQUE_ADMIN')", read: false, input: CategoryInput::class, output: CategoryOutput::class, processor: CategoryProcessor::class),
-        new Get(uriTemplate: '/categories/{id}', uriVariables: ['id' => new Link(schema: ['type' => 'string', 'format' => 'uuid'], property: 'id')], output: CategoryOutput::class, provider: CategoryProvider::class),
+        new Get(uriTemplate: '/categories/{id}', output: CategoryOutput::class, provider: CategoryProvider::class),
         new Patch(uriTemplate: '/categories/{id}', uriVariables: ['id' => new Link(schema: ['type' => 'string', 'format' => 'uuid'], property: 'id')], security: "is_granted('ROLE_BOUTIQUE_ADMIN')", read: false, input: CategoryInput::class, output: CategoryOutput::class, processor: CategoryProcessor::class),
         new Delete(uriTemplate: '/categories/{id}', uriVariables: ['id' => new Link(schema: ['type' => 'string', 'format' => 'uuid'], property: 'id')], security: "is_granted('ROLE_BOUTIQUE_ADMIN')", read: false, processor: CategoryProcessor::class),
     ],

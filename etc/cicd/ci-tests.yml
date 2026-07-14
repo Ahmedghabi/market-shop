@@ -1,3 +1,70 @@
-tests:
+stages:
+  - test
+  - e2e
+
+variables:
+  # Override this with the registry image built from the FrankenPHP Dockerfile.
+  CI_PHP_IMAGE: market-shop-app:local
+  APP_ENV: test
+  GIT_DEPTH: "1"
+
+phpunit:
+  stage: test
+  image: $CI_PHP_IMAGE
   script:
-    - composer test
+    - composer install --no-interaction --prefer-dist --no-progress
+    - composer test:unit
+    - composer cs-check
+    - php bin/console lint:container --env=test
+    - php bin/console doctrine:schema:validate --skip-sync --env=test
+  artifacts:
+    when: always
+    reports:
+      junit: var/log/phpunit.junit.xml
+    paths:
+      - var/log/
+    expire_in: 7 days
+
+coverage:
+  stage: test
+  image: $CI_PHP_IMAGE
+  script:
+    - composer install --no-interaction --prefer-dist --no-progress
+    - composer test:coverage
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+    expire_in: 7 days
+
+api-smoke:
+  stage: test
+  image: $CI_PHP_IMAGE
+  script:
+    - composer install --no-interaction --prefer-dist --no-progress
+    - php bin/console doctrine:schema:create --env=test --no-interaction
+    - php bin/console doctrine:fixtures:load --env=test --no-interaction
+    - mkdir -p var/log
+    - php -S 0.0.0.0:8082 -t public public/index.php > var/log/market-shop-api.log 2>&1 &
+    - for attempt in $(seq 1 30); do curl --fail --silent http://127.0.0.1:8082/api/health && break || sleep 2; done
+    - BASE_URL=http://127.0.0.1:8082 SHOP_HOST=demo-hanooti.localhost ADMIN_EMAIL="${TEST_BOUTIQUE_ADMIN_EMAIL}" ADMIN_PASSWORD="${TEST_BOUTIQUE_ADMIN_PASSWORD}" tests/api/smoke.sh
+  artifacts:
+    when: always
+    paths:
+      - var/log/market-shop-api.log
+    expire_in: 7 days
+
+playwright:
+  stage: e2e
+  image: mcr.microsoft.com/playwright:v1.55.0-noble
+  script:
+    - npm ci
+    - BASE_URL="${E2E_BASE_URL}" E2E_ADMIN_EMAIL="${E2E_ADMIN_EMAIL}" E2E_ADMIN_PASSWORD="${E2E_ADMIN_PASSWORD}" npm run e2e -- --project=chromium
+  artifacts:
+    when: always
+    reports:
+      junit: playwright-results.xml
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 7 days

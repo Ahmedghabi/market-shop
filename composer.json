@@ -14,6 +14,7 @@
     "intervention/image": "^4.1",
     "nelmio/cors-bundle": "^2.5",
     "symfony/console": "7.4.*",
+    "symfony/doctrine-messenger": "7.4.*",
     "symfony/dotenv": "7.4.*",
     "symfony/expression-language": "^8.1",
     "symfony/flex": "^2",
@@ -43,6 +44,8 @@
     "phpstan/phpstan": "^1.12",
     "phpunit/phpunit": "^10.5",
     "squizlabs/php_codesniffer": "^3.10",
+    "symfony/browser-kit": "^7.4",
+    "symfony/css-selector": "^7.4",
     "symfony/maker-bundle": "^1.67"
   },
   "autoload": {
@@ -67,6 +70,9 @@
       "@auto-scripts"
     ],
     "test": "pest --configuration phpunit.xml.dist",
+    "test:unit": "vendor/bin/phpunit tests/units --no-coverage",
+    "test:functional": "vendor/bin/phpunit tests/functional --no-coverage",
+    "test:coverage": "vendor/bin/phpunit tests/units tests/functional --coverage-text --coverage-clover=coverage/clover.xml && php bin/check-coverage.php coverage/clover.xml 80",
     "phpstan": "phpstan analyse src tests/units/src",
     "cs-check": "php-cs-fixer fix --dry-run --diff"
   },

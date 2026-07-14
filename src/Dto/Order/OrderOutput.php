@@ -9,6 +9,7 @@ final class OrderOutput
     public string $customerId;
     public string $customerName;
     public string $customerEmail;
+    public ?string $customerPhone = null;
     public string $channel;
     public string $status;
     public int $subtotalCents;
@@ -16,6 +17,17 @@ final class OrderOutput
     public int $totalCents;
     public string $currency;
     public array $items;
+    public ?string $shippingAddress = null;
+    public ?string $shippingCity = null;
+    public ?string $shippingPostalCode = null;
+    public ?string $shippingCountry = null;
+    public ?string $shippingGovernorate = null;
+    public ?string $shippingLocality = null;
+    public ?string $deliveryStatus = null;
+    public string $paymentStatus = 'pending';
+    public ?string $paymentMethodCode = null;
+    public ?string $deliveryTracking = null;
+    public ?string $deliveredAt = null;
     public \DateTimeImmutable $createdAt;
     public \DateTimeImmutable $updatedAt;
 }

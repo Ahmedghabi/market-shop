@@ -48,6 +48,21 @@ final class UserShopRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return UserShop[] */
+    public function findByRoleAndBoutique(string $role, string $boutiqueId): array
+    {
+        return $this->createQueryBuilder('us')
+            ->innerJoin('us.user', 'u')
+            ->innerJoin('us.boutique', 'b')
+            ->andWhere('us.role = :role')
+            ->andWhere('us.boutique = :boutiqueId')
+            ->setParameter('role', $role)
+            ->setParameter('boutiqueId', $boutiqueId)
+            ->orderBy('u.identifier', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findOneByUserAndBoutique(string $userId, string $boutiqueId): ?UserShop
     {
         return $this->createQueryBuilder('us')

@@ -28,10 +28,15 @@ use App\Repository\GovernorateRepository;
 use App\Repository\LocalityRepository;
 use App\Repository\ProductRepository;
 use App\Service\AppConfigService;
+use App\Service\Loyalty\Dto\LoyaltyCalculationResult;
+use App\Service\Loyalty\Dto\LoyaltyRedemptionRequest;
+use App\Service\Loyalty\LoyaltyEngine;
+use App\Service\Subscription\SubscriptionManager;
 use App\Service\Webhook\WebhookService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 
@@ -52,6 +57,8 @@ final readonly class CartService
         private RequestStack $requestStack,
         private AppConfigService $appConfig,
         private WebhookService $webhookService,
+        private LoyaltyEngine $loyaltyEngine,
+        private SubscriptionManager $subscriptionManager,
     ) {
     }
 
@@ -116,14 +123,18 @@ final readonly class CartService
         $cart->setCustomer($customer);
         $paymentMethod = $this->resolvePaymentMethod($cart->getBoutique(), $input->paymentMethodCode, $cart->getTotalCents());
 
+        $subtotalCents = $cart->getTotalCents();
+        $loyaltyResult = $this->calculateLoyaltyRedemption($cart->getBoutique(), $customer, $input, $subtotalCents);
+        $loyaltyDiscountCents = $loyaltyResult?->success ? $loyaltyResult->discountCents : 0;
+
         $order = new Order(
             $cart->getBoutique(),
             $customer,
             OrderChannel::Online,
             OrderStatus::Pending,
-            $cart->getTotalCents(),
-            0,
-            $cart->getTotalCents(),
+            $subtotalCents,
+            $loyaltyDiscountCents,
+            max(0, $subtotalCents - $loyaltyDiscountCents),
             $cart->getCurrency(),
         );
         $order->setCustomerSnapshot(
@@ -158,6 +169,10 @@ final readonly class CartService
         $this->em->flush();
         $this->clearCookieFor($cart->getBoutique());
 
+        if ($loyaltyResult?->success && $customer instanceof Customer) {
+            $this->loyaltyEngine->confirmRedemption($order, $customer, $loyaltyResult);
+        }
+
         // Dispatch order.created webhook
         $this->webhookService->dispatchEvent('order.created', [
             'id' => (string) $order->getId(),
@@ -180,8 +195,35 @@ final readonly class CartService
         $output->totalCents = $order->getTotalCents();
         $output->currency = $order->getCurrency();
         $output->customerName = $order->getCustomerName();
+        $output->subtotalCents = $order->getSubtotalCents();
+        $output->loyaltyDiscountCents = $loyaltyResult?->success ? $loyaltyResult->discountCents : 0;
+        $output->loyaltyPointsUsed = $loyaltyResult?->success ? $loyaltyResult->pointsUsed : 0;
 
         return $output;
+    }
+
+    /**
+     * Dry-run loyalty calculation before order creation. Never blocks
+     * checkout: any failure (no account, module disabled, guest customer...)
+     * simply results in no loyalty discount being applied.
+     */
+    private function calculateLoyaltyRedemption(Boutique $boutique, ?Customer $customer, CartCheckoutInput $input, int $subtotalCents): ?LoyaltyCalculationResult
+    {
+        if (!$customer instanceof Customer) {
+            return null;
+        }
+
+        $request = new LoyaltyRedemptionRequest(
+            useAllPoints: $input->useLoyaltyPoints,
+            pointsToUse: $input->loyaltyPointsToUse,
+            rewardId: $input->loyaltyRewardId,
+        );
+
+        if ($request->isEmpty()) {
+            return null;
+        }
+
+        return $this->loyaltyEngine->calculateRedemption($boutique, $customer, $request, $subtotalCents);
     }
 
     private function getOrCreateCart(string $boutiqueId): Cart
@@ -200,7 +242,7 @@ final readonly class CartService
             }
         }
 
-        $cart = new Cart($boutique, bin2hex(random_bytes(32)), null, currency: 'EUR');
+        $cart = new Cart($boutique, bin2hex(random_bytes(32)), null, currency: 'TND');
         $this->em->persist($cart);
         $this->em->flush();
         $this->writeCookieFor($cart);
@@ -256,6 +298,10 @@ final readonly class CartService
             );
 
             return $customer;
+        }
+
+        if (!$this->subscriptionManager->canCreateCustomer($boutique)) {
+            throw new ConflictHttpException('Le quota clients de cette boutique est atteint ou son abonnement est inactif.');
         }
 
         $customer = new Customer(

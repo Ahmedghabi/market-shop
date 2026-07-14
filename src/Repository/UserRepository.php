@@ -17,10 +17,14 @@ final class UserRepository extends ServiceEntityRepository
     /** @return array<User> */
     public function findByRole(string $role): array
     {
-        return $this->createQueryBuilder('u')
-            ->andWhere('u.roles LIKE :role')
-            ->setParameter('role', '%"'.$role.'"%')
-            ->getQuery()
-            ->getResult();
+        $ids = $this->getEntityManager()->getConnection()
+            ->executeQuery('SELECT id FROM app_user WHERE jsonb_exists(roles::jsonb, :role)', ['role' => $role])
+            ->fetchFirstColumn();
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        return $this->findBy(['id' => $ids]);
     }
 }

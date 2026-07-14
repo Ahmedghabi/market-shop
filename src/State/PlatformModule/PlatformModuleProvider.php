@@ -7,6 +7,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\Dto\PlatformModule\PlatformModuleOutput;
 use App\Entity\PlatformModule;
 use App\Repository\PlatformModuleRepository;
+use App\Repository\SubscriptionPlanModuleRepository;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /** @implements ProviderInterface<PlatformModuleOutput> */
@@ -14,6 +15,7 @@ final class PlatformModuleProvider implements ProviderInterface
 {
     public function __construct(
         private readonly PlatformModuleRepository $repository,
+        private readonly SubscriptionPlanModuleRepository $modules,
     ) {
     }
 
@@ -29,9 +31,28 @@ final class PlatformModuleProvider implements ProviderInterface
             return $this->toOutput($entity);
         }
 
-        $entities = $this->repository->findAll();
+        $platformModules = [];
+        foreach ($this->repository->findAll() as $entity) {
+            $platformModules[$entity->getModule()->getCode()] = $entity;
+        }
 
-        return array_map([$this, 'toOutput'], $entities);
+        return array_map(
+            function ($module) use ($platformModules): PlatformModuleOutput {
+                $entity = $platformModules[$module->getCode()] ?? null;
+                if ($entity instanceof PlatformModule) {
+                    return $this->toOutput($entity);
+                }
+
+                $output = new PlatformModuleOutput();
+                $output->moduleId = (string) $module->getId();
+                $output->moduleCode = $module->getCode();
+                $output->moduleName = $module->getName();
+                $output->isEnabled = true;
+
+                return $output;
+            },
+            $this->modules->findBy([], ['category' => 'ASC', 'name' => 'ASC']),
+        );
     }
 
     private function toOutput(PlatformModule $entity): PlatformModuleOutput

@@ -2,6 +2,7 @@
 
 namespace App\State\Review;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Review\ReviewInput;
@@ -13,10 +14,13 @@ use App\Repository\OrderItemRepository;
 use App\Repository\OrderRepository;
 use App\Repository\ProductRepository;
 use App\Repository\ReviewRepository;
+use App\Service\Module\ModuleAccessService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class ReviewProcessor implements ProcessorInterface
 {
@@ -29,12 +33,25 @@ final readonly class ReviewProcessor implements ProcessorInterface
         private EntityManagerInterface $em,
         private Security $security,
         private RequestStack $requestStack,
+        private ModuleAccessService $moduleAccess,
     ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ?ReviewOutput
     {
         $reviewId = $uriVariables['id'] ?? null;
+
+        if ($operation instanceof Delete) {
+            $review = $this->reviews->find((string) $reviewId);
+            if (!$review instanceof Review) {
+                throw new NotFoundHttpException('Review not found');
+            }
+
+            $this->em->remove($review);
+            $this->em->flush();
+
+            return null;
+        }
 
         if (null !== $reviewId) {
             $review = $this->reviews->find($reviewId);
@@ -60,6 +77,10 @@ final readonly class ReviewProcessor implements ProcessorInterface
         $boutique = $this->boutiques->findBySlugOrId($uriVariables['boutiqueId'] ?? $data->boutiqueId ?? '');
         if (!$boutique && $data->boutiqueId) {
             $boutique = $this->boutiques->findBySlugOrId($data->boutiqueId);
+        }
+
+        if ($boutique && !$this->moduleAccess->isModuleEnabled('reviews', $boutique)) {
+            throw new AccessDeniedHttpException('Les avis ne sont pas activés pour cette boutique.');
         }
 
         $product = null;

@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/*
+ * Unified design tokens.
+ *
+ * - `bo-*` tokens power the back-office (SaaS admin) UI: a fixed,
+ *   professional palette that stays consistent no matter which boutique
+ *   is being managed.
+ * - `brand-*` tokens power the storefront (front office) UI. They are
+ *   intentionally aliased to the CSS custom properties written at runtime
+ *   by `applyBoutiqueTheme()` (see assets/react/theme/boutiqueTheme.ts), so
+ *   `bg-brand`, `text-brand-ink`, etc. automatically reflect each
+ *   boutique's own color palette without any extra plumbing.
+ */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Back office */
+  --color-bo-primary: #6d28d9;
+  --color-bo-primary-dark: #5b21b6;
+  --color-bo-primary-light: #f1ebfd;
+  --color-bo-accent: #d4a72c;
+  --color-bo-accent-light: #faf1d8;
+  --color-bo-bg: #f7f6fc;
+  --color-bo-surface: #ffffff;
+  --color-bo-surface-alt: #f1eff8;
+  --color-bo-ink: #1c1a27;
+  --color-bo-muted: #6b6a7a;
+  --color-bo-subtle: #9997a8;
+  --color-bo-border: #e7e4f1;
+  --color-bo-success: #16a34a;
+  --color-bo-success-light: #dcfce7;
+  --color-bo-warning: #d97706;
+  --color-bo-warning-light: #fef3c7;
+  --color-bo-danger: #dc2626;
+  --color-bo-danger-light: #fee2e2;
+  --color-bo-info: #2563eb;
+  --color-bo-info-light: #dbeafe;
+
+  --radius-bo-xs: 8px;
+  --radius-bo-sm: 12px;
+  --radius-bo-md: 16px;
+  --radius-bo-lg: 22px;
+  --radius-bo-xl: 28px;
+
+  --shadow-bo-xs: 0 1px 2px 0 rgb(28 26 39 / 0.04);
+  --shadow-bo-sm: 0 2px 8px -2px rgb(28 26 39 / 0.08), 0 1px 2px rgb(28 26 39 / 0.04);
+  --shadow-bo-md: 0 8px 24px -8px rgb(28 26 39 / 0.14), 0 2px 8px -2px rgb(28 26 39 / 0.06);
+  --shadow-bo-lg: 0 20px 48px -12px rgb(28 26 39 / 0.20), 0 4px 12px -4px rgb(28 26 39 / 0.08);
+  --shadow-bo-glow: 0 0 0 1px rgb(109 40 217 / 0.08), 0 8px 24px -4px rgb(109 40 217 / 0.2);
+
+  /* Storefront (dynamic per-boutique) */
+  --color-brand: var(--primary, #3525cd);
+  --color-brand-dark: color-mix(in srgb, var(--primary, #3525cd) 82%, black);
+  --color-brand-container: var(--primary-container, #4f46e5);
+  --color-brand-secondary: var(--secondary, #505f76);
+  --color-brand-bg: var(--surface, #fcf8ff);
+  --color-brand-surface: var(--surface-container-lowest, #ffffff);
+  --color-brand-surface-alt: var(--surface-container, #f0ecf9);
+  --color-brand-surface-high: var(--surface-container-high, #eae6f4);
+  --color-brand-ink: var(--on-surface, #1b1b24);
+  --color-brand-muted: var(--on-surface-variant, #464555);
+  --color-brand-border: var(--outline-variant, #c7c4d8);
+
+  --radius-brand-sm: 10px;
+  --radius-brand-md: 16px;
+  --radius-brand-lg: 24px;
+  --radius-brand-xl: 32px;
+
+  --shadow-brand-sm: 0 2px 10px -4px rgb(27 27 36 / 0.10);
+  --shadow-brand-md: 0 12px 32px -8px rgb(27 27 36 / 0.16);
+  --shadow-brand-lg: 0 24px 56px -12px rgb(27 27 36 / 0.22);
+
+  --ease-brand: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, Card, Input, Select } from '../../components/ui';
+import { authHeaders, boutiqueQuery, resolveBoutiqueSlug } from './boutiqueRouting';
+import { applyStorefrontTheme, resetStorefrontTheme, type StorefrontThemeData } from '../../theme/storefrontThemeRoot';
 
 type Country = {
   id: string;
@@ -48,7 +50,15 @@ type CartOutput = {
   localityId?: string | null;
 };
 
+type CheckoutBoutique = StorefrontThemeData & {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 export function CheckoutPage() {
+  const boutiqueSlug = resolveBoutiqueSlug(/^\/boutiques\/([^/]+)\/checkout/);
+  const [boutique, setBoutique] = useState<CheckoutBoutique | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [localities, setLocalities] = useState<Locality[]>([]);
@@ -75,11 +85,27 @@ export function CheckoutPage() {
   });
 
   useEffect(() => {
+    if (!boutiqueSlug) return;
+    const headers = authHeaders();
+    resetStorefrontTheme();
+    fetch(`/api/boutiques/${boutiqueSlug}`, { headers })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload: CheckoutBoutique | null) => {
+        if (!payload) return;
+        applyStorefrontTheme(payload);
+        setBoutique(payload);
+      })
+      .catch(() => {});
+
+    return resetStorefrontTheme;
+  }, [boutiqueSlug]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadCart() {
       try {
-        const response = await fetch('/api/cart');
+        const response = await fetch(`/api/cart${boutiqueQuery(boutiqueSlug)}`);
         if (!response.ok) {
           throw new Error('Impossible de charger le panier.');
         }
@@ -148,14 +174,14 @@ export function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [boutiqueSlug]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadPaymentMethods() {
       try {
-        const response = await fetch('/api/payment-methods');
+        const response = await fetch(`/api/payment-methods${boutiqueQuery(boutiqueSlug)}`);
         if (!response.ok) {
           throw new Error('Impossible de charger les moyens de paiement.');
         }
@@ -184,7 +210,7 @@ export function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [boutiqueSlug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -303,7 +329,7 @@ export function CheckoutPage() {
     [localities, form.localityId],
   );
   const subtotal = ((cart?.totalCents ?? 0) / 100).toFixed(2);
-  const currency = cart?.currency ?? 'EUR';
+  const currency = cart?.currency ?? 'TND';
 
   const isAddressReady = Boolean(form.addressLine && form.countryId && form.governorateId && form.localityId);
 
@@ -319,7 +345,7 @@ export function CheckoutPage() {
     setSubmitSuccess(null);
 
     try {
-      const response = await fetch('/api/cart/checkout', {
+      const response = await fetch(`/api/cart/checkout${boutiqueQuery(boutiqueSlug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -350,7 +376,7 @@ export function CheckoutPage() {
         orderId: payload?.orderId || '',
         status: payload?.status || 'pending',
         totalCents: payload?.totalCents || cart?.totalCents || 0,
-        currency: payload?.currency || cart?.currency || 'EUR',
+        currency: payload?.currency || cart?.currency || 'TND',
         customerName: `${form.firstName} ${form.lastName}`.trim(),
       }));
       window.location.href = `/order-confirmation?orderId=${encodeURIComponent(payload?.orderId || '')}`;
@@ -362,11 +388,11 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="ds-shell">
+    <main className="ds-shell min-h-screen bg-[color:var(--sf-bg,#f6f2eb)] text-[color:var(--sf-text,#171717)]">
       <section className="ds-page py-8 md:py-12">
         <div className="mb-6">
           <p className="ds-hero__eyebrow">Checkout</p>
-          <h1 className="ds-hero__title">Paiement sécurisé</h1>
+          <h1 className="ds-hero__title">Paiement sécurisé{boutique?.name ? ` chez ${boutique.name}` : ''}</h1>
           <p className="ds-hero__subtitle">Adresse guidée, données client préremplies et total réel du panier.</p>
         </div>
 
@@ -375,24 +401,24 @@ export function CheckoutPage() {
             <Card>
               <h2 className="text-xl font-bold">1. Livraison</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Input value={form.firstName} onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))} placeholder="Prénom" />
-                <Input value={form.lastName} onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))} placeholder="Nom" />
-                <Input className="md:col-span-2" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" type="email" />
-                <Input className="md:col-span-2" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Téléphone" />
-                <Input className="md:col-span-2" value={form.addressLine} onChange={(event) => setForm((current) => ({ ...current, addressLine: event.target.value }))} placeholder="Adresse" />
-                <Select value={form.countryId} onChange={(event) => setForm((current) => ({ ...current, countryId: event.target.value, governorateId: '', localityId: '', postalCode: '' }))} disabled={isLoadingCountries || 0 === countries.length}>
+                 <Input aria-label="Prénom" value={form.firstName} onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))} placeholder="Prénom" />
+                 <Input aria-label="Nom" value={form.lastName} onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))} placeholder="Nom" />
+                 <Input aria-label="Email" className="md:col-span-2" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" type="email" />
+                 <Input aria-label="Téléphone" className="md:col-span-2" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Téléphone" />
+                 <Input aria-label="Adresse" className="md:col-span-2" value={form.addressLine} onChange={(event) => setForm((current) => ({ ...current, addressLine: event.target.value }))} placeholder="Adresse" />
+                 <Select aria-label="Pays" value={form.countryId} onChange={(event) => setForm((current) => ({ ...current, countryId: event.target.value, governorateId: '', localityId: '', postalCode: '' }))} disabled={isLoadingCountries || 0 === countries.length}>
                   <option value="">Choisir un pays</option>
                   {countries.map((country) => (
                     <option key={country.id} value={country.id}>{country.name}</option>
                   ))}
                 </Select>
-                <Select value={form.governorateId} onChange={(event) => setForm((current) => ({ ...current, governorateId: event.target.value, localityId: '', postalCode: '' }))} disabled={!form.countryId || isLoadingGovernorates || 0 === governorates.length}>
+                 <Select aria-label="Gouvernorat" value={form.governorateId} onChange={(event) => setForm((current) => ({ ...current, governorateId: event.target.value, localityId: '', postalCode: '' }))} disabled={!form.countryId || isLoadingGovernorates || 0 === governorates.length}>
                   <option value="">Choisir un gouvernorat</option>
                   {governorates.map((governorate) => (
                     <option key={governorate.id} value={governorate.id}>{governorate.name}</option>
                   ))}
                 </Select>
-                <Select value={form.localityId} onChange={(event) => {
+                 <Select aria-label="Ville" value={form.localityId} onChange={(event) => {
                   const localityId = event.target.value;
                   const locality = localities.find((item) => item.id === localityId) ?? null;
                   setForm((current) => ({
@@ -406,7 +432,7 @@ export function CheckoutPage() {
                     <option key={locality.id} value={locality.id}>{locality.name}</option>
                   ))}
                 </Select>
-                <Input value={form.postalCode} onChange={(event) => setForm((current) => ({ ...current, postalCode: event.target.value }))} placeholder="Code postal" />
+                 <Input aria-label="Code postal" value={form.postalCode} onChange={(event) => setForm((current) => ({ ...current, postalCode: event.target.value }))} placeholder="Code postal" />
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[color:var(--ds-on-surface-variant)]">
@@ -438,15 +464,15 @@ export function CheckoutPage() {
             <Card>
               <h2 className="text-xl font-bold">3. Paiement</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Select value={form.paymentMethodCode} onChange={(event) => setForm((current) => ({ ...current, paymentMethodCode: event.target.value }))}>
+                 <Select aria-label="Moyen de paiement" value={form.paymentMethodCode} onChange={(event) => setForm((current) => ({ ...current, paymentMethodCode: event.target.value }))}>
                   <option value="">Choisir un moyen de paiement</option>
                   {paymentMethods.map((method) => (
                     <option key={method.id} value={method.code}>{method.name}</option>
                   ))}
                 </Select>
-                <Input placeholder="Titulaire" />
-                <Input placeholder="Numéro de carte" />
-                <Input placeholder="MM/AA" />
+                 <Input aria-label="Titulaire de la carte" placeholder="Titulaire" />
+                 <Input aria-label="Numéro de carte" placeholder="Numéro de carte" />
+                 <Input aria-label="Date d'expiration" placeholder="MM/AA" />
               </div>
             </Card>
           </div>

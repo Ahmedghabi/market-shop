@@ -13,6 +13,7 @@ use App\State\Example\ExampleProcessor;
     operations: [
         new Post(
             uriTemplate: '/examples',
+            security: "is_granted('ROLE_SUPER_ADMIN')",
             input: ExampleInput::class,
             output: ExampleOutput::class,
             processor: ExampleProcessor::class,

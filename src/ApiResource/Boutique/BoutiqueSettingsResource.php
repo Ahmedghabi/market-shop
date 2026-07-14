@@ -11,6 +11,8 @@ use App\State\Boutique\SettingsProcessor;
 #[ApiResource(
     shortName: 'BoutiqueSettings',
     operations: [
+        new Get(uriTemplate: '/admin/boutiques/{boutiqueId}/settings', security: "is_granted('ROLE_SUPER_ADMIN')", output: \App\Dto\Boutique\BoutiqueSettingsOutput::class, provider: SettingsProvider::class),
+        new Patch(uriTemplate: '/admin/boutiques/{boutiqueId}/settings', security: "is_granted('ROLE_SUPER_ADMIN')", input: \App\Dto\Boutique\BoutiqueSettingsInput::class, processor: SettingsProcessor::class),
         new Get(uriTemplate: '/settings', output: \App\Dto\Boutique\BoutiqueSettingsOutput::class, provider: SettingsProvider::class),
         new Patch(uriTemplate: '/settings', security: "is_granted('ROLE_BOUTIQUE_ADMIN')", input: \App\Dto\Boutique\BoutiqueSettingsInput::class, processor: SettingsProcessor::class),
     ],

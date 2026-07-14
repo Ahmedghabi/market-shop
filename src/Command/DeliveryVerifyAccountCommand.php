@@ -3,8 +3,7 @@
 namespace App\Command;
 
 use App\Entity\BoutiqueDeliveryAccount;
-use App\Service\Delivery\DeliveryApiClient;
-use App\Service\Delivery\EncryptionService;
+use App\Service\Delivery\DeliveryEngine;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,8 +18,7 @@ final class DeliveryVerifyAccountCommand extends Command
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly DeliveryApiClient $apiClient,
-        private readonly EncryptionService $encryption,
+        private readonly DeliveryEngine $engine,
     ) {
         parent::__construct();
     }
@@ -35,26 +33,15 @@ final class DeliveryVerifyAccountCommand extends Command
                 continue;
             }
 
+            $result = $this->engine->testConnection($account);
             $company = $account->getDeliveryCompany();
 
-            try {
-                $login = $this->encryption->decrypt($account->getEncryptedLogin());
-                $password = $this->encryption->decrypt($account->getEncryptedPassword());
-            } catch (\RuntimeException $e) {
-                $account->markAsUnverified('Erreur déchiffrement');
-                $output->writeln(sprintf('  [erreur] Compte #%s — déchiffrement impossible', $account->getId()));
-                ++$checked;
-                continue;
-            }
-
-            $result = $this->apiClient->verifyCredentials($company, $login, $password);
-
-            if ($result['success']) {
+            if ($result->success) {
                 $account->markAsVerified();
                 $output->writeln(sprintf('  [vérifié] Compte #%s — %s', $account->getId(), $company->getName()));
             } else {
-                $account->markAsUnverified($result['message'] ?? 'Échec vérification');
-                $output->writeln(sprintf('  [échec] Compte #%s — %s: %s', $account->getId(), $company->getName(), $result['message'] ?? ''));
+                $account->markAsUnverified($result->errorMessage ?? 'Échec vérification');
+                $output->writeln(sprintf('  [échec] Compte #%s — %s: %s', $account->getId(), $company->getName(), $result->errorMessage ?? ''));
             }
 
             ++$checked;

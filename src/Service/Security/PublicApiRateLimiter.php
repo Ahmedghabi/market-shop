@@ -19,6 +19,8 @@ final readonly class PublicApiRateLimiter
         private RateLimiterFactory $publicCheckoutLimiter,
         #[Autowire(service: 'limiter.public_reference')]
         private RateLimiterFactory $publicReferenceLimiter,
+        #[Autowire(service: 'limiter.public_suggestion')]
+        private RateLimiterFactory $publicSuggestionLimiter,
     ) {
     }
 
@@ -35,6 +37,11 @@ final readonly class PublicApiRateLimiter
     public function consumeReference(string $scope = 'default'): void
     {
         $this->consume($this->publicReferenceLimiter, 'reference:'.$scope, 'Too many reference requests. Please try again shortly.');
+    }
+
+    public function consumeSuggestion(string $scope = 'create'): void
+    {
+        $this->consume($this->publicSuggestionLimiter, 'suggestion:'.$scope, 'Too many suggestion requests. Please try again shortly.');
     }
 
     private function consume(RateLimiterFactory $factory, string $scope, string $message): void

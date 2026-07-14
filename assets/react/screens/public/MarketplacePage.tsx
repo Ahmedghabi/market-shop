@@ -1,18 +1,23 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMemo, useState } from 'react';
+import { BrandLogo } from '../../components/BrandLogo';
+import { frontOfficeUrl } from '../../backoffice/utils/frontOfficeUrl';
 import { Badge, Button, Card, Input } from '../../components/ui';
 import { appIcons } from '../../icons/fontAwesome';
 
 type PublicBoutique = {
   name: string;
-  category: string;
-  city: string;
-  image?: string;
-  href: string;
-  accent: string;
+  category?: string | null;
+  city?: string | null;
+  image?: string | null;
+  href?: string;
+  accent?: string | null;
   slug: string;
   status?: string;
   logoUrl?: string | null;
+  customDomain?: string | null;
+  isPublished?: boolean;
+  isVisiblePublicly?: boolean;
 };
 
 type MarketplacePageProps = {
@@ -62,12 +67,12 @@ export function MarketplacePage({ title, description, boutiques }: MarketplacePa
     const category = selectedCategory.toLowerCase();
 
     return boutiques.filter((boutique) => {
-      const searchable = [boutique.name, boutique.category, boutique.city]
+      const searchable = [boutique.name, boutique.category ?? '', boutique.city ?? '']
         .join(' ')
         .toLowerCase()
         .includes(normalized);
 
-      if ('tous' !== category && boutique.category.toLowerCase() !== category) {
+      if ('tous' !== category && (boutique.category ?? '').toLowerCase() !== category) {
         return false;
       }
 
@@ -84,8 +89,7 @@ export function MarketplacePage({ title, description, boutiques }: MarketplacePa
       <header className="sticky top-0 z-40 border-b border-[color:var(--ds-outline-variant)] bg-[color:var(--ds-surface-container-lowest)]/95 backdrop-blur">
         <div className="ds-page flex items-center justify-between gap-6 py-4">
           <a className="flex items-center gap-3 font-bold text-[color:var(--ds-primary)] no-underline" href="/">
-            <img src="/img/logo.svg" alt="Hanooty" className="h-11 w-11 rounded-2xl object-cover" />
-            <span>Hanooty</span>
+            <BrandLogo className="hanooti-logo--marketplace" />
           </a>
 
           <nav className="hidden items-center gap-4 md:flex" aria-label="Navigation publique">
@@ -112,7 +116,7 @@ export function MarketplacePage({ title, description, boutiques }: MarketplacePa
           <div className="relative grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
             <div>
               <Badge tone="neutral">Professional Hub</Badge>
-              <h1 className="ds-hero__title">{title || 'Découvrez les boutiques Hanooty'}</h1>
+              <h1 className="ds-hero__title">{title || 'Découvrez les boutiques Hanooti'}</h1>
               <p className="ds-hero__subtitle">
                 {description || 'Une vitrine publique plus lisible pour explorer les boutiques, comparer rapidement et accéder au bon parcours.'}
               </p>
@@ -257,17 +261,17 @@ export function MarketplacePage({ title, description, boutiques }: MarketplacePa
             featuredBoutiques.map((boutique) => (
               <a
                 key={boutique.slug}
-                href={boutique.href}
+                href={frontOfficeUrl(boutique)}
                 className="group ds-card cursor-pointer no-underline transition hover:-translate-y-1 hover:shadow-lg"
                 style={{ borderTop: `4px solid ${boutique.accent || 'var(--ds-primary)'}` }}
               >
                 <div className="h-48 relative overflow-hidden rounded-2xl bg-[color:var(--ds-surface-container-low)]">
                   <img
-                    src={boutique.image || boutique.logoUrl || '/img/logo.svg'}
+                    src={boutique.image || boutique.logoUrl || '/img/hanooti-mark.svg'}
                     alt={boutique.name}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     onError={(event) => {
-                      event.currentTarget.src = '/img/logo.svg';
+                      event.currentTarget.src = '/img/hanooti-mark.svg';
                     }}
                   />
 
@@ -332,8 +336,7 @@ export function MarketplacePage({ title, description, boutiques }: MarketplacePa
         <div className="ds-page grid gap-8 py-10 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
           <div>
             <a className="flex items-center gap-3 font-bold text-[color:var(--ds-primary)] no-underline" href="/">
-              <img src="/img/logo.svg" alt="Hanooty" className="h-11 w-11 rounded-2xl object-cover" />
-              <span>Hanooty</span>
+              <BrandLogo className="hanooti-logo--marketplace" />
             </a>
             <p className="mt-4 max-w-sm text-sm text-[color:var(--ds-on-surface-variant)]">
               Marketplace public pour découvrir les boutiques, explorer les vitrines et accéder au back-office.

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Category } from '../../types';
+import type { Category, SubscriptionSummary } from '../../types';
 import { useApiClient, useApiData } from '../../hooks/useApi';
 import { Card, CardHeader, CardBody } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -47,6 +47,11 @@ export function CategoriesPage({ getAccessToken }: { getAccessToken: () => strin
 
   const { data, isLoading, error, refresh } = useApiData(fetchData, [page, search, status]);
 
+  const fetchSummary = useCallback(async () => api.get<SubscriptionSummary>('/subscription/summary'), [api]);
+  const { data: summary, refresh: refreshSummary } = useApiData(fetchSummary, [boutique?.id]);
+  const categoryQuota = summary?.quotas?.find((q) => q.code === 'max_categories');
+  const atQuota = !!categoryQuota && categoryQuota.remaining !== null && categoryQuota.remaining <= 0;
+
   const fetchAllCats = useCallback(() => {
     const params = new URLSearchParams();
     if (!boutique?.id && form.boutiqueId) params.set('boutiqueId', form.boutiqueId);
@@ -62,7 +67,7 @@ export function CategoriesPage({ getAccessToken }: { getAccessToken: () => strin
 
   function openCreate() {
     setEditing(null);
-    setForm({ boutiqueId: '', name: '', parentId: '', isActive: true });
+    setForm({ boutiqueId: '', name: '', parentId: '', isActive: !atQuota });
     setModalOpen(true);
   }
 
@@ -91,6 +96,7 @@ export function CategoriesPage({ getAccessToken }: { getAccessToken: () => strin
       }
       setModalOpen(false);
       refresh();
+      refreshSummary();
     } catch (err) {
       showNotice(err instanceof Error ? err.message : 'Erreur.', 'error');
     } finally {
@@ -106,6 +112,7 @@ export function CategoriesPage({ getAccessToken }: { getAccessToken: () => strin
       showNotice('Catégorie supprimée.', 'success');
       setDeleteTarget(null);
       refresh();
+      refreshSummary();
     } catch (err) {
       showNotice(err instanceof Error ? err.message : 'Erreur.', 'error');
     } finally {
@@ -126,6 +133,20 @@ export function CategoriesPage({ getAccessToken }: { getAccessToken: () => strin
     <div>
       <PageHeader title="Catégories" description="Organisez vos produits par catégories" actions={<Button onClick={openCreate}>+ Nouvelle catégorie</Button>} />
       <Card>
+        {categoryQuota && (
+          <div style={{
+            padding: '10px 20px', background: 'var(--bo-surface)', borderBottom: '1px solid var(--bo-border)',
+            fontSize: 13, color: 'var(--bo-text-secondary)', display: 'flex', gap: 16, alignItems: 'center',
+          }}>
+            <span>Catégories actives : <strong>{categoryQuota.usage}</strong> / {categoryQuota.limit ?? '∞'}</span>
+            {categoryQuota.remaining !== null && (
+              <span style={{ color: categoryQuota.remaining <= 0 ? 'var(--bo-warning)' : 'var(--bo-success)' }}>
+                ({categoryQuota.remaining <= 0 ? 'quota atteint' : categoryQuota.remaining + ' restante' + (categoryQuota.remaining > 1 ? 's' : '')})
+              </span>
+            )}
+            {categoryQuota.limit === null && <span style={{ color: 'var(--bo-success)' }}>Illimité</span>}
+          </div>
+        )}
         <CardHeader>
           <FiltersBar search={search} onSearchChange={(v) => { setSearch(v); setPage(1); }} status={status} onStatusChange={(v) => { setStatus(v); setPage(1); }} statusOptions={[{ value: 'active', label: 'Actives' }, { value: 'inactive', label: 'Inactives' }]} />
           <span style={{ fontSize: 13, color: 'var(--bo-text-muted)' }}>{totalItems} catégorie{totalItems > 1 ? 's' : ''}</span>
@@ -154,7 +175,11 @@ export function CategoriesPage({ getAccessToken }: { getAccessToken: () => strin
               {allCategories.filter((c) => c.id !== editing?.id).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </Select>
           </FormField>
-          <label className="bo-checkbox"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} /> Active</label>
+           <label className="bo-checkbox" style={atQuota && !form.isActive ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>
+             <input type="checkbox" checked={form.isActive} disabled={!!(atQuota && !form.isActive)} onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))} />
+             Active
+             {atQuota && <span style={{ marginLeft: 8, color: 'var(--bo-warning)', fontSize: 12 }}>(quota atteint)</span>}
+           </label>
         </form>
       </Modal>
 

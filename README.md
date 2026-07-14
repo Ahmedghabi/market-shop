@@ -17,7 +17,7 @@ ApiResource / Controller
 
 ## Business Model
 
-Hanooty is designed as a multi-boutique SaaS platform. Each boutique owns its own users,
+Hanooti is designed as a multi-boutique SaaS platform. Each boutique owns its own users,
 customers, categories, products, stock, orders, promotions, loyalty data, and boutique-specific
 sponsors.
 

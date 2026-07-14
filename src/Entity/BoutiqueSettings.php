@@ -98,14 +98,8 @@ class BoutiqueSettings extends AbstractEntity
         private bool $enableCustomerEmailVerification = false,
         #[ORM\Column]
         private bool $createAccountAfterOrder = false,
-        #[ORM\Column]
-        private bool $enableLoyalty = false,
         #[ORM\Column(type: 'json')]
         private array $guestCheckoutFields = ['firstname', 'lastname', 'phone', 'email', 'address', 'city', 'postalCode'],
-        #[ORM\Column]
-        private int $loyaltyPointsPerAmount = 100,
-        #[ORM\Column]
-        private int $loyaltyAmountCents = 100,
         #[ORM\Column(length: 255, nullable: true)]
         private ?string $slogan = null,
         #[ORM\Column(length: 32, enumType: OrderMode::class)]
@@ -254,10 +248,24 @@ class BoutiqueSettings extends AbstractEntity
         return $this->colorPalette;
     }
 
+    /** @param array<string, string> $colorPalette */
+    public function setColorPalette(array $colorPalette): void
+    {
+        $this->colorPalette = $colorPalette;
+        $this->touch();
+    }
+
     /** @return array<string, string> */
     public function getIconSet(): array
     {
         return $this->iconSet;
+    }
+
+    /** @param array<string, string> $iconSet */
+    public function setIconSet(array $iconSet): void
+    {
+        $this->iconSet = $iconSet;
+        $this->touch();
     }
 
     /** @return list<array{categoryId?: string, label: string, icon?: string, color?: string, position?: int}> */
@@ -266,16 +274,37 @@ class BoutiqueSettings extends AbstractEntity
         return $this->featuredCategories;
     }
 
+    /** @param list<array{categoryId?: string, label: string, icon?: string, color?: string, position?: int}> $featuredCategories */
+    public function setFeaturedCategories(array $featuredCategories): void
+    {
+        $this->featuredCategories = $featuredCategories;
+        $this->touch();
+    }
+
     /** @return list<array{slug: string, label: string, enabled: bool, position?: int}> */
     public function getFrontOfficePages(): array
     {
         return $this->frontOfficePages;
     }
 
+    /** @param list<array{slug: string, label: string, enabled: bool, position?: int}> $frontOfficePages */
+    public function setFrontOfficePages(array $frontOfficePages): void
+    {
+        $this->frontOfficePages = $frontOfficePages;
+        $this->touch();
+    }
+
     /** @return list<array{label: string, href: string, icon?: string, position?: int}> */
     public function getNavigationItems(): array
     {
         return $this->navigationItems;
+    }
+
+    /** @param list<array{label: string, href: string, icon?: string, position?: int}> $navigationItems */
+    public function setNavigationItems(array $navigationItems): void
+    {
+        $this->navigationItems = $navigationItems;
+        $this->touch();
     }
 
     public function useDeliveryApi(): bool
@@ -355,17 +384,6 @@ class BoutiqueSettings extends AbstractEntity
         $this->touch();
     }
 
-    public function isEnableLoyalty(): bool
-    {
-        return $this->enableLoyalty;
-    }
-
-    public function setEnableLoyalty(bool $enableLoyalty): void
-    {
-        $this->enableLoyalty = $enableLoyalty;
-        $this->touch();
-    }
-
     /** @return list<string> */
     public function getGuestCheckoutFields(): array
     {
@@ -376,28 +394,6 @@ class BoutiqueSettings extends AbstractEntity
     public function setGuestCheckoutFields(array $guestCheckoutFields): void
     {
         $this->guestCheckoutFields = $guestCheckoutFields;
-        $this->touch();
-    }
-
-    public function getLoyaltyPointsPerAmount(): int
-    {
-        return $this->loyaltyPointsPerAmount;
-    }
-
-    public function setLoyaltyPointsPerAmount(int $loyaltyPointsPerAmount): void
-    {
-        $this->loyaltyPointsPerAmount = $loyaltyPointsPerAmount;
-        $this->touch();
-    }
-
-    public function getLoyaltyAmountCents(): int
-    {
-        return $this->loyaltyAmountCents;
-    }
-
-    public function setLoyaltyAmountCents(int $loyaltyAmountCents): void
-    {
-        $this->loyaltyAmountCents = $loyaltyAmountCents;
         $this->touch();
     }
 

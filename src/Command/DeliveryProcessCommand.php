@@ -12,7 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
     name: 'app:delivery-process',
-    description: 'Soumet les commandes payées aux transporteurs puis marque comme livrées.',
+    description: 'Authentifie chaque boutique, confirme les commandes auprès des transporteurs puis les marque comme expédiées.',
 )]
 final class DeliveryProcessCommand extends Command
 {
@@ -28,19 +28,13 @@ final class DeliveryProcessCommand extends Command
     {
         $processed = 0;
 
-        foreach ($this->repository->findPaid() as $order) {
+        foreach ($this->repository->findPendingDeliverySubmission() as $order) {
             $result = $this->submitter->submit($order);
             if ($result['success']) {
                 $output->writeln(sprintf('  [envoyée] Commande #%s — %s', $order->getId(), $result['tracking'] ?? ''));
             } else {
                 $output->writeln(sprintf('  [erreur] Commande #%s — %s', $order->getId(), $result['error'] ?? ''));
             }
-            ++$processed;
-        }
-
-        foreach ($this->repository->findShippedNotDelivered() as $order) {
-            $order->markAsDelivered();
-            $output->writeln(sprintf('  [livrée] Commande #%s', $order->getId()));
             ++$processed;
         }
 

@@ -26,10 +26,10 @@ final class ReservedSlugRegistry
     /** @param list<string> $additional */
     public function __construct(array $additional = [])
     {
-        $this->reserved = array_values(array_unique([
-            ...self::DEFAULT_RESERVED,
-            ...$additional,
-        ]));
+        $this->reserved = array_values(array_unique(array_map(
+            static fn (string $slug): string => strtolower(trim($slug)),
+            [...self::DEFAULT_RESERVED, ...$additional],
+        )));
     }
 
     public function isReserved(string $slug): bool

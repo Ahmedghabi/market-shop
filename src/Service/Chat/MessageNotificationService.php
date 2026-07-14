@@ -4,14 +4,14 @@ namespace App\Service\Chat;
 
 use App\Entity\Conversation;
 use App\Entity\Notification;
-use App\Repository\NotificationRepository;
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 
 final class MessageNotificationService
 {
     public function __construct(
-        private NotificationRepository $notificationRepository,
         private UserRepository $userRepository,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -35,7 +35,7 @@ final class MessageNotificationService
                 boutique: $boutique,
             );
 
-            $this->notificationRepository->save($notification, true);
+            $this->entityManager->persist($notification);
         }
 
         $superAdmins = $this->userRepository->findByRole('ROLE_SUPER_ADMIN');
@@ -48,7 +48,9 @@ final class MessageNotificationService
                 boutique: $boutique,
             );
 
-            $this->notificationRepository->save($notification, true);
+            $this->entityManager->persist($notification);
         }
+
+        $this->entityManager->flush();
     }
 }

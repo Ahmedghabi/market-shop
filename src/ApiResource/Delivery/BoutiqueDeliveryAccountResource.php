@@ -64,6 +64,15 @@ const BOUTIQUE_DELIVERY_ACCOUNT_URI_VARIABLES = [
             output: BoutiqueDeliveryAccountOutput::class,
             processor: BoutiqueDeliveryAccountProcessor::class,
         ),
+        new Post(
+            name: 'set_default_delivery_account',
+            uriTemplate: '/delivery-accounts/{id}/set-default',
+            uriVariables: ['id' => new Link(schema: ['type' => 'string', 'format' => 'uuid'], property: 'id')],
+            security: "is_granted('ROLE_BOUTIQUE_ADMIN')",
+            input: false,
+            output: BoutiqueDeliveryAccountOutput::class,
+            processor: BoutiqueDeliveryAccountProcessor::class,
+        ),
     ],
 )]
 final class BoutiqueDeliveryAccountResource
@@ -75,5 +84,10 @@ final class BoutiqueDeliveryAccountResource
     public ?string $verifiedAt = null;
     public ?string $lastError = null;
     public bool $isActive = true;
+    public bool $isDefault = false;
+    public bool $hasApiKey = false;
+    public bool $hasToken = false;
+    public bool $hasSecret = false;
+    public ?string $customBaseUrl = null;
     public ?string $createdAt = null;
 }

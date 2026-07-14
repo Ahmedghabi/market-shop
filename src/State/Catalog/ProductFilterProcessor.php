@@ -12,6 +12,7 @@ use App\Repository\ProductFilterRepository;
 use App\Security\BoutiqueContext;
 use App\State\Common\BoutiqueWriteResolverTrait;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /** @implements ProcessorInterface<ProductFilterResource> */
 final readonly class ProductFilterProcessor implements ProcessorInterface
@@ -34,16 +35,22 @@ final readonly class ProductFilterProcessor implements ProcessorInterface
 
         if ($operation instanceof Delete) {
             $filter = $this->filters->find($uriVariables['id'] ?? '');
-            if ($filter instanceof ProductFilter) {
-                $this->em->remove($filter);
-                $this->em->flush();
+            if (!$filter instanceof ProductFilter || (string) $filter->getBoutique()->getId() !== $boutiqueId) {
+                throw new NotFoundHttpException('Product filter not found');
             }
+
+            $this->em->remove($filter);
+            $this->em->flush();
 
             return null;
         }
 
         $filterId = $uriVariables['id'] ?? null;
         $filter = $filterId ? $this->filters->find($filterId) : null;
+
+        if ($filterId && (!$filter instanceof ProductFilter || (string) $filter->getBoutique()->getId() !== $boutiqueId)) {
+            throw new NotFoundHttpException('Product filter not found');
+        }
 
         if (!$filter instanceof ProductFilter) {
             $slug = $data->slug ?: trim(preg_replace('/[^a-z0-9-]+/', '-', strtolower($data->name)), '-');

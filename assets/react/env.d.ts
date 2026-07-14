@@ -8,14 +8,14 @@ declare namespace NodeJS {
   }
 }
 
-declare const process: {
-  env: NodeJS.ProcessEnv;
-};
-
 interface ImportMetaEnv {
   readonly VITE_MERCURE_PUBLIC_URL?: string;
 }
 
 interface ImportMeta {
   readonly env?: ImportMetaEnv;
+}
+
+interface Window {
+  __boutiqueSlug__?: string;
 }

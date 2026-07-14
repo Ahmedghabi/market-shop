@@ -2,12 +2,17 @@ import { MarketplacePage } from '../../screens/public/MarketplacePage';
 
 type PublicBoutique = {
   name: string;
-  category: string;
-  city: string;
-  image: string;
-  href: string;
-  accent: string;
   slug: string;
+  category?: string | null;
+  city?: string | null;
+  image?: string | null;
+  href?: string;
+  accent?: string | null;
+  status?: string;
+  logoUrl?: string | null;
+  customDomain?: string | null;
+  isPublished?: boolean;
+  isVisiblePublicly?: boolean;
 };
 
 export function MarketplaceRoutePage({ title, description, boutiques }: { title: string; description: string; boutiques: PublicBoutique[] }) {

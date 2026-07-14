@@ -54,6 +54,9 @@ class Boutique extends AbstractEntity implements SoftDeletableInterface
     #[ORM\Column]
     private bool $isFeatured = false;
 
+    #[ORM\Column]
+    private bool $isPublished = false;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $approvedAt = null;
 
@@ -256,6 +259,23 @@ class Boutique extends AbstractEntity implements SoftDeletableInterface
         $this->touch();
     }
 
+    public function isPublished(): bool
+    {
+        return $this->isPublished;
+    }
+
+    public function publish(): void
+    {
+        $this->isPublished = true;
+        $this->touch();
+    }
+
+    public function unpublish(): void
+    {
+        $this->isPublished = false;
+        $this->touch();
+    }
+
     public function getApprovedAt(): ?\DateTimeImmutable
     {
         return $this->approvedAt;
@@ -376,14 +396,24 @@ class Boutique extends AbstractEntity implements SoftDeletableInterface
         $this->settings?->setMetaPixelId($metaPixelId);
     }
 
+    public function getGoogleAnalyticsId(): ?string
+    {
+        return $this->settings?->getGoogleAnalyticsId();
+    }
+
+    public function getGoogleTagManagerId(): ?string
+    {
+        return $this->settings?->getGoogleTagManagerId();
+    }
+
+    public function getTiktokPixelId(): ?string
+    {
+        return $this->settings?->getTiktokPixelId();
+    }
+
     public function getCheckoutMode(): string
     {
         return $this->settings?->getCheckoutMode()->value ?? 'ACCOUNT_ONLY';
-    }
-
-    public function isEnableLoyalty(): bool
-    {
-        return $this->settings?->isEnableLoyalty() ?? false;
     }
 
     public function isCreateAccountAfterOrder(): bool
@@ -458,7 +488,7 @@ class Boutique extends AbstractEntity implements SoftDeletableInterface
             return false;
         }
 
-        return $this->hasActiveSubscription();
+        return $this->isPublished && $this->hasActiveSubscription();
     }
 
     public function getSubdomainUrl(): string

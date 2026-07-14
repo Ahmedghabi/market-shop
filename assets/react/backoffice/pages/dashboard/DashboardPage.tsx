@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Card, CardBody, CardHeader } from '../../components/Card';
@@ -6,6 +7,26 @@ import { ErrorState, LoadingState } from '../../components/States';
 import { useApiClient, useApiData } from '../../hooks/useApi';
 import { useBoutique } from '../../hooks/useBoutique';
 import { PageHeader } from '../../layout/Shell';
+
+const gridStagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+const gridItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
+function WidgetIcon({ tone }: { tone?: 'success' | 'warning' | 'error' | 'neutral' }) {
+  return (
+    <div className={`bo-widget-icon ${tone && tone !== 'neutral' ? `tone-${tone}` : ''}`}>
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    </div>
+  );
+}
 
 type BoutiqueDashboardData = {
   boutiqueId: string;
@@ -29,6 +50,7 @@ type BoutiqueDashboardData = {
     reviewsCount: number;
   };
   topProducts: Array<{ id: string; name: string; salesCount: number; revenueCents: number }>;
+  viewStats: ViewStats;
 };
 
 type DashboardModules = { modules: Record<string, boolean> };
@@ -49,6 +71,12 @@ type PlatformDashboardData = {
   };
   subscriptions: { active: number; expired: number; expiringSoon: number };
   topBoutiques: Array<{ id: string; name: string; revenueCents: number; orders: number }>;
+  viewStats: ViewStats;
+};
+type ViewStats = {
+  days: Array<{ date: string; views: number }>;
+  products: Array<{ date: string; productId: string; productName: string; views: number }>;
+  boutiques: Array<{ date: string; boutiqueId: string; boutiqueName: string; views: number }>;
 };
 type BoutiqueAccess = {
   modules: Record<string, { accessible: boolean; globallyEnabled: boolean; allowedBySubscription: boolean; enabledInBoutique: boolean }>;
@@ -364,20 +392,30 @@ export function DashboardPage({ getAccessToken }: { getAccessToken: () => string
         actions={<Button variant="secondary" onClick={refresh}>Actualiser</Button>}
       />
 
-      <section className="bo-widget-grid">
+      <motion.section
+        className="bo-widget-grid"
+        variants={gridStagger}
+        initial="hidden"
+        animate="show"
+      >
         {mainCards.filter((card) => card.visible).map((card) => (
-          <Card key={card.label}>
-            <CardBody>
-              <div className="bo-widget">
-                <div className="bo-widget-info">
-                  <span className="bo-widget-label">{card.label}</span>
-                  <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : undefined }}>{card.value}</strong>
+          <motion.div key={card.label} variants={gridItem}>
+            <Card>
+              <CardBody>
+                <div className="bo-widget">
+                  <div className="bo-widget-header">
+                    <WidgetIcon tone={card.tone as 'error' | 'neutral' | undefined} />
+                  </div>
+                  <div className="bo-widget-info">
+                    <span className="bo-widget-label">{card.label}</span>
+                    <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : undefined }}>{card.value}</strong>
+                  </div>
                 </div>
-              </div>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
+          </motion.div>
         ))}
-      </section>
+      </motion.section>
 
       <section style={{ marginTop: 24 }}>
         <Card>
@@ -466,6 +504,8 @@ export function DashboardPage({ getAccessToken }: { getAccessToken: () => string
           </Card>
         </section>
       )}
+
+      <ViewStatsSection data={dashboard.viewStats} />
     </div>
   );
 }
@@ -474,7 +514,7 @@ function PlatformDashboard({ data, modules, onRefresh }: { data: PlatformDashboa
   const kpis = data.kpis;
   const enabledModules = Object.entries(modules).filter(([, enabled]) => enabled);
   const disabledModules = Object.entries(modules).filter(([, enabled]) => !enabled);
-  const growthTone = kpis.monthlyGrowthPercent === null || kpis.monthlyGrowthPercent >= 0 ? 'success' : 'error';
+  const growthTone: 'success' | 'error' = kpis.monthlyGrowthPercent === null || kpis.monthlyGrowthPercent >= 0 ? 'success' : 'error';
 
   const cards = [
     { label: 'Boutiques', value: kpis.totalBoutiques, hint: `${kpis.activeBoutiques} actives`, tone: 'success' as const },
@@ -495,21 +535,31 @@ function PlatformDashboard({ data, modules, onRefresh }: { data: PlatformDashboa
         actions={<Button variant="secondary" onClick={onRefresh}>Actualiser</Button>}
       />
 
-      <section className="bo-widget-grid">
+      <motion.section
+        className="bo-widget-grid"
+        variants={gridStagger}
+        initial="hidden"
+        animate="show"
+      >
         {cards.map((card) => (
-          <Card key={card.label}>
-            <CardBody>
-              <div className="bo-widget">
-                <div className="bo-widget-info">
-                  <span className="bo-widget-label">{card.label}</span>
-                  <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : card.tone === 'warning' ? 'var(--bo-warning)' : card.tone === 'success' ? 'var(--bo-success)' : undefined }}>{card.value}</strong>
-                  <span style={{ color: 'var(--bo-text-muted)', fontSize: 12 }}>{card.hint}</span>
+          <motion.div key={card.label} variants={gridItem}>
+            <Card>
+              <CardBody>
+                <div className="bo-widget">
+                  <div className="bo-widget-header">
+                    <WidgetIcon tone={card.tone} />
+                  </div>
+                  <div className="bo-widget-info">
+                    <span className="bo-widget-label">{card.label}</span>
+                    <strong className="bo-widget-value" style={{ color: card.tone === 'error' ? 'var(--bo-error)' : card.tone === 'warning' ? 'var(--bo-warning)' : card.tone === 'success' ? 'var(--bo-success)' : undefined }}>{card.value}</strong>
+                    <span style={{ color: 'var(--bo-text-muted)', fontSize: 12 }}>{card.hint}</span>
+                  </div>
                 </div>
-              </div>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
+          </motion.div>
         ))}
-      </section>
+      </motion.section>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginTop: 24 }}>
         <Card>
@@ -569,8 +619,126 @@ function PlatformDashboard({ data, modules, onRefresh }: { data: PlatformDashboa
           </Card>
         </section>
       )}
+
+      <ViewStatsSection data={data.viewStats} />
     </div>
   );
+}
+
+function ViewStatsSection({ data }: { data: ViewStats }) {
+  return (
+    <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 16, marginTop: 24 }}>
+      <Card>
+        <CardHeader>Vues produits · 7 derniers jours</CardHeader>
+        <CardBody>
+          <ViewsBarChart data={data.days} label="Nombre de vues produits par jour" />
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader>Vues par boutique · 7 derniers jours</CardHeader>
+        <CardBody>
+          <ViewsByBoutiqueChart data={data.boutiques} />
+        </CardBody>
+      </Card>
+    </section>
+  );
+}
+
+function ViewsBarChart({ data, label }: { data: Array<{ date: string; views: number }>; label: string }) {
+  const days = lastSevenDays();
+  const values = days.map((date) => data.find((item) => item.date === date)?.views ?? 0);
+  const max = Math.max(1, ...values);
+  const chartHeight = 170;
+  const chartWidth = 700;
+  const barWidth = 54;
+  const gap = (chartWidth - days.length * barWidth) / (days.length + 1);
+
+  return (
+    <div>
+      <svg viewBox="0 0 700 220" role="img" aria-label={label} style={{ display: 'block', width: '100%', height: 'auto' }}>
+        <line x1="0" y1={chartHeight} x2={chartWidth} y2={chartHeight} stroke="var(--bo-border)" />
+        {values.map((value, index) => {
+          const height = value > 0 ? Math.max(4, (value / max) * chartHeight) : 0;
+          const x = gap + index * (barWidth + gap);
+          const y = chartHeight - height;
+
+          return (
+            <g key={days[index]}>
+              <rect x={x} y={y} width={barWidth} height={height} rx="6" fill="var(--bo-primary)" opacity="0.9" />
+              <text x={x + barWidth / 2} y={y - 8} textAnchor="middle" fontSize="12" fill="var(--bo-text)">{value}</text>
+              <text x={x + barWidth / 2} y="198" textAnchor="middle" fontSize="11" fill="var(--bo-text-muted)">{formatDate(days[index])}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={chartHintStyle}>Total sur la période : <strong>{values.reduce((total, value) => total + value, 0)}</strong> vues</div>
+    </div>
+  );
+}
+
+function ViewsByBoutiqueChart({ data }: { data: ViewStats['boutiques'] }) {
+  const days = lastSevenDays();
+  const boutiqueNames = [...new Map(data.map((item) => [item.boutiqueId, item.boutiqueName])).entries()];
+  const colors = ['var(--bo-primary)', 'var(--bo-success)', 'var(--bo-warning)', 'var(--bo-error)', '#8b5cf6'];
+  const valuesByDay = days.map((date) => boutiqueNames.map(([boutiqueId]) => data.find((item) => item.date === date && item.boutiqueId === boutiqueId)?.views ?? 0));
+  const totals = valuesByDay.map((values) => values.reduce((total, value) => total + value, 0));
+  const max = Math.max(1, ...totals);
+  const chartHeight = 170;
+  const chartWidth = 700;
+  const barWidth = 54;
+  const gap = (chartWidth - days.length * barWidth) / (days.length + 1);
+
+  return (
+    <div>
+      <svg viewBox="0 0 700 220" role="img" aria-label="Nombre de vues par boutique et par jour" style={{ display: 'block', width: '100%', height: 'auto' }}>
+        <line x1="0" y1={chartHeight} x2={chartWidth} y2={chartHeight} stroke="var(--bo-border)" />
+        {valuesByDay.map((values, dayIndex) => {
+          const x = gap + dayIndex * (barWidth + gap);
+          let offset = 0;
+
+          return (
+            <g key={days[dayIndex]}>
+              {values.map((value, boutiqueIndex) => {
+                const height = value > 0 ? Math.max(3, (value / max) * chartHeight) : 0;
+                const y = chartHeight - offset - height;
+                offset += height;
+
+                return <rect key={boutiqueNames[boutiqueIndex]?.[0] ?? boutiqueIndex} x={x} y={y} width={barWidth} height={height} fill={colors[boutiqueIndex % colors.length]} opacity="0.9" />;
+              })}
+              <text x={x + barWidth / 2} y={chartHeight - offset - 8} textAnchor="middle" fontSize="12" fill="var(--bo-text)">{totals[dayIndex]}</text>
+              <text x={x + barWidth / 2} y="198" textAnchor="middle" fontSize="11" fill="var(--bo-text-muted)">{formatDate(days[dayIndex])}</text>
+            </g>
+          );
+        })}
+      </svg>
+      {boutiqueNames.length > 0 ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 12, color: 'var(--bo-text-muted)' }}>
+          {boutiqueNames.map(([boutiqueId, name], index) => (
+            <span key={boutiqueId}><i style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: colors[index % colors.length], marginRight: 5 }} />{name}</span>
+          ))}
+        </div>
+      ) : <div style={chartHintStyle}>Aucune vue enregistrée sur la période.</div>}
+    </div>
+  );
+}
+
+function lastSevenDays() {
+  const today = new Date();
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(today.getDate() - (6 - index));
+
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  });
+}
+
+const chartHintStyle = { marginTop: 4, fontSize: 12, color: 'var(--bo-text-muted)' } as const;
+
+function formatDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 }
 
 function StatRow({ label, value, tone = 'neutral' }: { label: string; value: string | number; tone?: 'success' | 'warning' | 'error' | 'neutral' }) {

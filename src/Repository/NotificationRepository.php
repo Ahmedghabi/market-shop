@@ -18,13 +18,13 @@ final class NotificationRepository extends ServiceEntityRepository
     public function findForRecipient(?string $recipientIdentifier, bool $isSuperAdmin): array
     {
         $queryBuilder = $this->createQueryBuilder('notification')
-            ->orderBy('notification.createdAt', 'DESC')
-            ->setMaxResults(50);
+            ->orderBy('notification.createdAt', 'DESC');
 
         if (!$isSuperAdmin) {
             $queryBuilder
                 ->andWhere('notification.recipientIdentifier = :recipient')
-                ->setParameter('recipient', $recipientIdentifier);
+                ->setParameter('recipient', $recipientIdentifier)
+                ->setMaxResults(50);
         }
 
         return $queryBuilder->getQuery()->getResult();

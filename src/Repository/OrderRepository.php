@@ -30,6 +30,22 @@ final class OrderRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /**
+     * Count of non-cancelled orders placed by this customer for this boutique —
+     * used by the loyalty engine for first-purchase/order-count/min-orders rules.
+     */
+    public function countValidByCustomer(\App\Entity\Customer $customer): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.customer = :customer')
+            ->andWhere('o.status != :cancelled')
+            ->setParameter('customer', $customer)
+            ->setParameter('cancelled', OrderStatus::Cancelled)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     /** @return list<Order> */
     public function findPaid(): array
     {
@@ -64,16 +80,57 @@ final class OrderRepository extends ServiceEntityRepository
     }
 
     /** @return list<Order> */
-    public function findDeliveryFailedForRetry(int $maxRetries = 5): array
+    public function findDeliveryFailedForRetry(int $maxRetries = 5, int $retryIntervalSeconds = 3600): array
     {
+        $threshold = new \DateTimeImmutable(sprintf('-%d seconds', $retryIntervalSeconds));
+
         return $this->createQueryBuilder('o')
             ->andWhere('o.status = :status')
             ->andWhere('o.submittedToDelivery = :submitted')
             ->andWhere('o.deliveryRetryCount < :maxRetries')
+            ->andWhere('o.lastRetryAt IS NULL OR o.lastRetryAt < :threshold')
             ->setParameter('status', OrderStatus::Paid)
             ->setParameter('submitted', false)
             ->setParameter('maxRetries', $maxRetries)
+            ->setParameter('threshold', $threshold)
             ->orderBy('o.lastRetryAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return list<Order>
+     */
+    public function findForBackoffice(
+        ?Boutique $boutique = null,
+        ?OrderStatus $status = null,
+        ?string $search = null,
+        string $sortField = 'createdAt',
+        string $sortDirection = 'DESC',
+    ): array {
+        $query = $this->createQueryBuilder('o');
+
+        if ($boutique instanceof Boutique) {
+            $query->andWhere('o.boutique = :boutique')->setParameter('boutique', $boutique);
+        }
+
+        if ($status instanceof OrderStatus) {
+            $query->andWhere('o.status = :status')->setParameter('status', $status);
+        }
+
+        if (null !== $search && '' !== trim($search)) {
+            $query
+                ->andWhere('LOWER(COALESCE(o.customerName, :empty)) LIKE :search OR LOWER(COALESCE(o.customerEmail, :empty)) LIKE :search')
+                ->setParameter('empty', '')
+                ->setParameter('search', '%'.mb_strtolower(trim($search)).'%');
+        }
+
+        $allowedSortFields = ['createdAt', 'totalCents', 'status', 'customerName'];
+        $sortField = in_array($sortField, $allowedSortFields, true) ? $sortField : 'createdAt';
+        $sortDirection = 'ASC' === strtoupper($sortDirection) ? 'ASC' : 'DESC';
+
+        return $query
+            ->orderBy('o.'.$sortField, $sortDirection)
             ->getQuery()
             ->getResult();
     }

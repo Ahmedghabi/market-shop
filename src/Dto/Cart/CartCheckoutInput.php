@@ -38,4 +38,10 @@ final class CartCheckoutInput
     public ?string $shippingLocality = null;
 
     public ?string $shippingLocalityId = null;
+
+    public bool $useLoyaltyPoints = false;
+
+    public ?int $loyaltyPointsToUse = null;
+
+    public ?string $loyaltyRewardId = null;
 }
